@@ -100,14 +100,23 @@ const LANGUAGE_MAP: { [key: string]: LanguageKey } = {
 
 enum SETTING_NAMES {
   USE_DATA_SAVER = 'Use data saver',
+  API_BASE_URL = 'API base URL',
+  UPLOADS_BASE_URL = 'Uploads base URL',
 }
+
+const DEFAULT_API_BASE_URL = 'https://api.mangadex.org';
+const DEFAULT_UPLOADS_BASE_URL = 'https://uploads.mangadex.org';
 
 const SETTING_TYPES = {
   [SETTING_NAMES.USE_DATA_SAVER]: SettingType.BOOLEAN,
+  [SETTING_NAMES.API_BASE_URL]: SettingType.STRING,
+  [SETTING_NAMES.UPLOADS_BASE_URL]: SettingType.STRING,
 };
 
 const DEFAULT_SETTINGS = {
   [SETTING_NAMES.USE_DATA_SAVER]: false,
+  [SETTING_NAMES.API_BASE_URL]: DEFAULT_API_BASE_URL,
+  [SETTING_NAMES.UPLOADS_BASE_URL]: DEFAULT_UPLOADS_BASE_URL,
 };
 
 const PAGE_SIZE = 48;
@@ -122,6 +131,28 @@ export class ExtensionClient extends ExtensionClientAbstract {
     super(webviewFn);
     this.settings = DEFAULT_SETTINGS;
   }
+
+  _trimTrailingSlash = (value: string) => {
+    return value.endsWith('/') ? value.slice(0, -1) : value;
+  };
+
+  _getApiBaseUrl = () => {
+    const value = this.settings[SETTING_NAMES.API_BASE_URL];
+    if (typeof value !== 'string' || value.length === 0) {
+      return DEFAULT_API_BASE_URL;
+    }
+
+    return this._trimTrailingSlash(value);
+  };
+
+  _getUploadsBaseUrl = () => {
+    const value = this.settings[SETTING_NAMES.UPLOADS_BASE_URL];
+    if (typeof value !== 'string' || value.length === 0) {
+      return DEFAULT_UPLOADS_BASE_URL;
+    }
+
+    return this._trimTrailingSlash(value);
+  };
 
   _parseManga = (json: any): Series => {
     const tags: string[] = json.attributes.tags.map((tag: any) => tag.attributes.name.en);
@@ -140,7 +171,7 @@ export class ExtensionClient extends ExtensionClientAbstract {
     );
     const remoteCoverUrl =
       coverRelationship !== undefined
-        ? `https://uploads.mangadex.org/covers/${json.id}/${coverRelationship.attributes.fileName}.512.jpg`
+        ? `${this._getUploadsBaseUrl()}/covers/${json.id}/${coverRelationship.attributes.fileName}.512.jpg`
         : '';
 
     const series: Series = {
@@ -187,8 +218,9 @@ export class ExtensionClient extends ExtensionClientAbstract {
   };
 
   override getSeries: GetSeriesFunc = (id: string) => {
+    const apiBase = this._getApiBaseUrl();
     return fetch(
-      `https://api.mangadex.org/manga/${id}?includes[]=artist&includes[]=author&includes[]=cover_art`
+      `${apiBase}/manga/${id}?includes[]=artist&includes[]=author&includes[]=cover_art`
     )
       .then((response: Response) => response.json())
       .then((json: any) => {
@@ -198,6 +230,7 @@ export class ExtensionClient extends ExtensionClientAbstract {
   };
 
   override getChapters: GetChaptersFunc = async (id: string) => {
+    const apiBase = this._getApiBaseUrl();
     const chapterList: Chapter[] = [];
     let gotAllChapters: boolean = false;
     let offset = 0;
@@ -211,7 +244,7 @@ export class ExtensionClient extends ExtensionClientAbstract {
         params.append('contentRating[]', contentRating.key);
       });
 
-      const response = await fetch(`https://api.mangadex.org/manga/${id}/feed?` + params);
+      const response = await fetch(`${apiBase}/manga/${id}/feed?` + params);
       const json: any = await response.json();
       json.data.forEach((result: any) => {
         const groupRelationship: any | undefined = result.relationships.find(
@@ -248,7 +281,8 @@ export class ExtensionClient extends ExtensionClientAbstract {
     seriesSourceId: string,
     chapterSourceId: string
   ) => {
-    return fetch(`https://api.mangadex.org/at-home/server/${chapterSourceId}`)
+    const apiBase = this._getApiBaseUrl();
+    return fetch(`${apiBase}/at-home/server/${chapterSourceId}`)
       .then((response: Response) => response.json())
       .then((json: any) => {
         const pageFilenames = this.settings[SETTING_NAMES.USE_DATA_SAVER]
@@ -281,6 +315,7 @@ export class ExtensionClient extends ExtensionClientAbstract {
   };
 
   override getSearch: GetSearchFunc = (text: string, page: number, filterValues: FilterValues) => {
+    const apiBase = this._getApiBaseUrl();
     const params = new URLSearchParams({
       title: text,
       offset: `${(page - 1) * PAGE_SIZE}`,
@@ -345,7 +380,7 @@ export class ExtensionClient extends ExtensionClientAbstract {
       }
     }
 
-    return fetch('https://api.mangadex.org/manga?' + params)
+    return fetch(`${apiBase}/manga?` + params)
       .then((response: Response) => response.json())
       .then((json: any) => {
         const results: ParsedResults = this._parseMangaResults(json);
@@ -366,7 +401,7 @@ export class ExtensionClient extends ExtensionClientAbstract {
 
   override setSettings: SetSettingsFunc = (newSettings: { [key: string]: any }) => {
     Object.keys(newSettings).forEach((key: string) => {
-      if (key in this.settings && typeof (this.settings[key] === newSettings[key])) {
+      if (key in this.settings && typeof this.settings[key] === typeof newSettings[key]) {
         this.settings[key] = newSettings[key];
       }
     });

@@ -1,5 +1,12 @@
 import { BrowserWindow } from 'electron';
 import {
+  ApkActiveMapping,
+  ApkExtensionInfo,
+  ApkMigrationReport,
+  ApkRuntimeConfig,
+  ApkRuntimeState,
+  ApkSelectionState,
+  ApkSourceMapping,
   Chapter,
   ExtensionMetadata,
   FilterValues,
@@ -261,6 +268,22 @@ export interface TiyoClientInterface {
 
   getVersion: GetVersionFunc;
   getExtensions: GetExtensionsFunc;
+  getApkExtensionsDirectory?: () => string;
+  getApkExtensions?: () => ApkExtensionInfo[];
+  refreshApkExtensions?: () => ApkExtensionInfo[];
+  getApkSourceMappings?: () => ApkSourceMapping[];
+  getApkSelectionState?: () => ApkSelectionState;
+  getActiveApkMappings?: () => ApkActiveMapping[];
+  setApkSourceSelection?: (sourceKey: string, selectedPackageName: string) => ApkSelectionState;
+  clearApkSourceSelection?: (sourceKey: string) => ApkSelectionState;
+  getApkRuntimeConfig?: () => ApkRuntimeConfig;
+  setApkExtensionsDirectory?: (directory: string) => ApkRuntimeConfig;
+  clearApkExtensionsDirectory?: () => ApkRuntimeConfig;
+  setApkOnlyMode?: (enabled: boolean) => ApkRuntimeConfig;
+  setAdapterRequiredMode?: (enabled: boolean) => ApkRuntimeConfig;
+  getApkRuntimeState?: () => ApkRuntimeState;
+  refreshApkRuntimeState?: () => ApkRuntimeState;
+  getApkMigrationReport?: () => ApkMigrationReport;
 }
 
 export abstract class TiyoClientAbstract implements TiyoClientInterface {
@@ -272,4 +295,20 @@ export abstract class TiyoClientAbstract implements TiyoClientInterface {
 
   getVersion!: GetVersionFunc;
   getExtensions!: GetExtensionsFunc;
+  getApkExtensionsDirectory?: () => string;
+  getApkExtensions?: () => ApkExtensionInfo[];
+  refreshApkExtensions?: () => ApkExtensionInfo[];
+  getApkSourceMappings?: () => ApkSourceMapping[];
+  getApkSelectionState?: () => ApkSelectionState;
+  getActiveApkMappings?: () => ApkActiveMapping[];
+  setApkSourceSelection?: (sourceKey: string, selectedPackageName: string) => ApkSelectionState;
+  clearApkSourceSelection?: (sourceKey: string) => ApkSelectionState;
+  getApkRuntimeConfig?: () => ApkRuntimeConfig;
+  setApkExtensionsDirectory?: (directory: string) => ApkRuntimeConfig;
+  clearApkExtensionsDirectory?: () => ApkRuntimeConfig;
+  setApkOnlyMode?: (enabled: boolean) => ApkRuntimeConfig;
+  setAdapterRequiredMode?: (enabled: boolean) => ApkRuntimeConfig;
+  getApkRuntimeState?: () => ApkRuntimeState;
+  refreshApkRuntimeState?: () => ApkRuntimeState;
+  getApkMigrationReport?: () => ApkMigrationReport;
 }

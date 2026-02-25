@@ -79,3 +79,89 @@ export type ConvertExternalDataResponse = {
     type: "info" | "warning" | "error";
   }[];
 };
+
+export type ApkExtensionInfo = {
+  filePath: string;
+  fileName: string;
+  packageName: string;
+  sourceKey: string;
+  sourceName: string;
+  version: string | undefined;
+};
+
+export type ApkSourceMapping = {
+  apk: ApkExtensionInfo;
+  extensionId: string | undefined;
+  extensionName: string | undefined;
+  supported: boolean;
+};
+
+export type ApkSelectionState = {
+  [sourceKey: string]: {
+    selectedPackageName: string;
+    extensionId: string | undefined;
+  };
+};
+
+export type ApkActiveMapping = {
+  sourceKey: string;
+  selectedPackageName: string;
+  extensionId: string;
+  extensionName: string;
+  filePath: string;
+  version: string | undefined;
+};
+
+export type ApkRuntimeConfig = {
+  apkExtensionsDirectory?: string;
+  apkOnlyMode?: boolean;
+  adapterRequiredMode?: boolean;
+};
+
+export type ApkRuntimeMessage = {
+  type: 'info' | 'warning' | 'error';
+  code: string;
+  text: string;
+};
+
+export type ApkRuntimeDiagnostic = {
+  type: 'info' | 'warning' | 'error';
+  code: string;
+  fileName: string;
+  packageName: string;
+  sourceKey: string;
+  text: string;
+};
+
+export type ApkMigrationStatus = 'adapter-ready' | 'mapped' | 'unmapped';
+
+export type ApkMigrationEntry = {
+  extensionId: string;
+  extensionName: string;
+  sourceKey: string;
+  status: ApkMigrationStatus;
+  hasSupportedMapping: boolean;
+  hasActiveAdapter: boolean;
+  hasAnyApkForSourceKey: boolean;
+};
+
+export type ApkMigrationReport = {
+  summary: {
+    total: number;
+    adapterReady: number;
+    mapped: number;
+    unmapped: number;
+  };
+  entries: ApkMigrationEntry[];
+};
+
+export type ApkRuntimeState = {
+  runtimeConfig: ApkRuntimeConfig;
+  apkExtensionsDirectory: string;
+  apkExtensions: ApkExtensionInfo[];
+  sourceMappings: ApkSourceMapping[];
+  selectionState: ApkSelectionState;
+  activeMappings: ApkActiveMapping[];
+  messages: ApkRuntimeMessage[];
+  diagnostics: ApkRuntimeDiagnostic[];
+};
