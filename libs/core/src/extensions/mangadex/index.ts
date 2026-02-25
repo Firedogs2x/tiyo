@@ -212,7 +212,7 @@ export class ExtensionClient extends ExtensionClientAbstract {
       });
 
       const response = await fetch(`https://api.mangadex.org/manga/${id}/feed?` + params);
-      const json = await response.json();
+      const json: any = await response.json();
       json.data.forEach((result: any) => {
         const groupRelationship: any | undefined = result.relationships.find(
           (relationship: any) =>
