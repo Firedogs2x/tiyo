@@ -5195,23 +5195,30 @@ export class TiyoClient extends TiyoClientAbstract {
   private _applyApkModeFiltering = <T extends { metadata: { id: string } }>(
     extensions: { [key: string]: T }
   ) => {
+    const allowedIds = this._getApkModeAllowedExtensionIds();
+    if (allowedIds === undefined) {
+      return extensions;
+    }
+
+    return Object.fromEntries(
+      Object.entries(extensions).filter(([extensionId]) => allowedIds.has(extensionId))
+    ) as { [key: string]: T };
+  };
+
+  private _getApkModeAllowedExtensionIds = (): Set<string> | undefined => {
     const runtimeConfig = this.getApkRuntimeConfig();
     if (runtimeConfig.apkOnlyMode !== true && runtimeConfig.adapterRequiredMode !== true) {
-      return extensions;
+      return undefined;
     }
 
     const activeMappings = this.getActiveApkMappings();
     const adapterEligibleMappings = this._getAdapterEligibleMappings(activeMappings);
 
-    const allowedIds = new Set(
+    return new Set(
       (runtimeConfig.adapterRequiredMode === true ? adapterEligibleMappings : activeMappings).map(
         (mapping) => mapping.extensionId
       )
     );
-
-    return Object.fromEntries(
-      Object.entries(extensions).filter(([extensionId]) => allowedIds.has(extensionId))
-    ) as { [key: string]: T };
   };
 
   private _createExtensionEntry = <T extends { METADATA: ExtensionMetadata } & {
@@ -5225,58 +5232,73 @@ export class TiyoClient extends TiyoClientAbstract {
     };
   };
 
-  private _buildBaseExtensions = () => {
-    return {
-      [anatanomotokare.METADATA.id]: this._createExtensionEntry(anatanomotokare),
-      [arcrelight.METADATA.id]: this._createExtensionEntry(arcrelight),
-      [assortedscans.METADATA.id]: this._createExtensionEntry(assortedscans),
-      [comick.METADATA.id]: this._createExtensionEntry(comick),
-      [deathtollscans.METADATA.id]: this._createExtensionEntry(deathtollscans),
-      [disasterscans.METADATA.id]: this._createExtensionEntry(disasterscans),
-      [guya.METADATA.id]: this._createExtensionEntry(guya),
-      [hniscantrad.METADATA.id]: this._createExtensionEntry(hniscantrad),
-      [immortalupdates.METADATA.id]: this._createExtensionEntry(immortalupdates),
-      [isekaiscan.METADATA.id]: this._createExtensionEntry(isekaiscan),
-      [kireicake.METADATA.id]: this._createExtensionEntry(kireicake),
-      [komga.METADATA.id]: this._createExtensionEntry(komga),
-      [komikcast.METADATA.id]: this._createExtensionEntry(komikcast),
-      [kouhaiwork.METADATA.id]: this._createExtensionEntry(kouhaiwork),
-      [lecercleduscan.METADATA.id]: this._createExtensionEntry(lecercleduscan),
-      [leviatanscans.METADATA.id]: this._createExtensionEntry(leviatanscans),
-      [lilyreader.METADATA.id]: this._createExtensionEntry(lilyreader),
-      [lupiteam.METADATA.id]: this._createExtensionEntry(lupiteam),
-      [manga347.METADATA.id]: this._createExtensionEntry(manga347),
-      [mangabat.METADATA.id]: this._createExtensionEntry(mangabat),
-      [mangadex.METADATA.id]: this._createExtensionEntry(mangadex),
-      [mangakakalot.METADATA.id]: this._createExtensionEntry(mangakakalot),
-      [mangakatana.METADATA.id]: this._createExtensionEntry(mangakatana),
-      [mangakik.METADATA.id]: this._createExtensionEntry(mangakik),
-      [mangalife.METADATA.id]: this._createExtensionEntry(mangalife),
-      [manganato.METADATA.id]: this._createExtensionEntry(manganato),
-      [mangapill.METADATA.id]: this._createExtensionEntry(mangapill),
-      [mangasee.METADATA.id]: this._createExtensionEntry(mangasee),
-      [mangatellers.METADATA.id]: this._createExtensionEntry(mangatellers),
-      [menudofansub.METADATA.id]: this._createExtensionEntry(menudofansub),
-      [nana.METADATA.id]: this._createExtensionEntry(nana),
-      [nhentai.METADATA.id]: this._createExtensionEntry(nhentai),
-      [nifteam.METADATA.id]: this._createExtensionEntry(nifteam),
-      [phoenixscans.METADATA.id]: this._createExtensionEntry(phoenixscans),
-      [readcomiconline.METADATA.id]: this._createExtensionEntry(readcomiconline),
-      [sensescans.METADATA.id]: this._createExtensionEntry(sensescans),
-      [silentsky.METADATA.id]: this._createExtensionEntry(silentsky),
-      [sleepingknightscans.METADATA.id]: this._createExtensionEntry(sleepingknightscans),
-      [tcbscans.METADATA.id]: this._createExtensionEntry(tcbscans),
-      [toonily.METADATA.id]: this._createExtensionEntry(toonily),
-      [tortugaceviri.METADATA.id]: this._createExtensionEntry(tortugaceviri),
-      [tritiniascans.METADATA.id]: this._createExtensionEntry(tritiniascans),
-      [tuttoanimemanga.METADATA.id]: this._createExtensionEntry(tuttoanimemanga),
-      [yuriism.METADATA.id]: this._createExtensionEntry(yuriism),
-      [zandynofansub.METADATA.id]: this._createExtensionEntry(zandynofansub),
-    };
+  private _buildBaseExtensions = (allowedIds?: Set<string>) => {
+    const extensionModules = [
+      anatanomotokare,
+      arcrelight,
+      assortedscans,
+      comick,
+      deathtollscans,
+      disasterscans,
+      guya,
+      hniscantrad,
+      immortalupdates,
+      isekaiscan,
+      kireicake,
+      komga,
+      komikcast,
+      kouhaiwork,
+      lecercleduscan,
+      leviatanscans,
+      lilyreader,
+      lupiteam,
+      manga347,
+      mangabat,
+      mangadex,
+      mangakakalot,
+      mangakatana,
+      mangakik,
+      mangalife,
+      manganato,
+      mangapill,
+      mangasee,
+      mangatellers,
+      menudofansub,
+      nana,
+      nhentai,
+      nifteam,
+      phoenixscans,
+      readcomiconline,
+      sensescans,
+      silentsky,
+      sleepingknightscans,
+      tcbscans,
+      toonily,
+      tortugaceviri,
+      tritiniascans,
+      tuttoanimemanga,
+      yuriism,
+      zandynofansub,
+    ] as const;
+
+    return extensionModules.reduce(
+      (acc, extensionModule) => {
+        if (allowedIds !== undefined && !allowedIds.has(extensionModule.METADATA.id)) {
+          return acc;
+        }
+
+        acc[extensionModule.METADATA.id] = this._createExtensionEntry(extensionModule);
+        return acc;
+      },
+      {} as {
+        [key: string]: { metadata: ExtensionMetadata; client: ExtensionClientInterface };
+      }
+    );
   };
 
   override getExtensions = () => {
-    const baseExtensions = this._buildBaseExtensions();
+    const allowedIds = this._getApkModeAllowedExtensionIds();
+    const baseExtensions = this._buildBaseExtensions(allowedIds);
     return this._applyApkModeFiltering(
       this._applyApkAdapterProfiles(this._applyApkSelectionOverrides(baseExtensions))
     );
