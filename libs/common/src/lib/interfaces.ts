@@ -1,12 +1,48 @@
 import { BrowserWindow } from 'electron';
 import {
   ApkActiveMapping,
+  ApkDefaultDirectoryEnforceResult,
+  ApkDirectoryStatus,
   ApkExtensionInfo,
+  ApkLastRepairMetadata,
+  ApkPreferredSelectionBulkOperationResult,
+  ApkPreferredSelectionOperationResult,
   ApkMigrationReport,
+  ApkPreferredSelectionCandidate,
+  ApkRuntimeActionHint,
+  ApkRuntimeBootstrapResult,
+  ApkRuntimeDigest,
+  ApkRuntimeHealthSummary,
+  ApkRuntimePollingDecision,
+  ApkRuntimeQuickStatus,
+  ApkRuntimeRepairResult,
+  ApkRuntimeStabilizeResult,
+  ApkRuntimeSuggestedActionResult,
+  ApkRuntimeStartupPreparationResult,
+  ApkRuntimeMaintenanceCycleOptions,
+  ApkRuntimeMaintenanceCycleResult,
+  ApkRuntimeStrictStartupGateOptions,
+  ApkRuntimeStrictStartupGateRecommendation,
+  ApkRuntimeStrictStartupProfile,
+  ApkRuntimeStrictStartupGateResult,
+  ApkStartupRemediationPlan,
+  ApkStartupRemediationOverrides,
+  ApkStartupRemediationRunResult,
+  ApkStartupRemediationUntilStableOptions,
+  ApkStartupRemediationUntilStableResult,
+  ApkHoudokuReadyStatus,
+  ApkUiModel,
+  ApkSelectionRecommendation,
+  ApkSelectionCleanupResult,
   ApkRuntimeConfig,
   ApkRuntimeState,
+  ApkSourceGroup,
+  ApkSourceReadinessSummary,
   ApkSelectionState,
+  ApkUnneededExtensionCleanupOptions,
   ApkSourceMapping,
+  ApkUnneededExtensionCleanupResult,
+  ApkUnneededExtensionCandidate,
   Chapter,
   ExtensionMetadata,
   FilterValues,
@@ -268,19 +304,83 @@ export interface TiyoClientInterface {
 
   getVersion: GetVersionFunc;
   getExtensions: GetExtensionsFunc;
+  getDefaultApkExtensionsDirectoryPath?: () => string;
+  useDefaultApkExtensionsDirectory?: () => ApkRuntimeConfig;
+  enforceDefaultApkDirectory?: () => ApkDefaultDirectoryEnforceResult;
+  getApkDirectoryStatus?: () => ApkDirectoryStatus;
   getApkExtensionsDirectory?: () => string;
   getApkExtensions?: () => ApkExtensionInfo[];
   refreshApkExtensions?: () => ApkExtensionInfo[];
   getApkSourceMappings?: () => ApkSourceMapping[];
+  getApkUnneededExtensions?: () => ApkUnneededExtensionCandidate[];
+  cleanupUnneededApkExtensions?: (
+    options?: boolean | ApkUnneededExtensionCleanupOptions
+  ) => ApkUnneededExtensionCleanupResult;
+  getApkSourceGroups?: () => ApkSourceGroup[];
+  getApkSourceReadinessSummaries?: () => ApkSourceReadinessSummary[];
+  getApkPreferredSelectionCandidates?: () => ApkPreferredSelectionCandidate[];
   getApkSelectionState?: () => ApkSelectionState;
+  cleanupApkSelectionState?: () => ApkSelectionCleanupResult;
+  autoSelectPreferredApkWithResult?: (sourceKey: string) => ApkPreferredSelectionOperationResult;
+  autoSelectPreferredApk?: (sourceKey: string) => ApkSelectionState;
+  autoSelectAllPreferredApksWithResult?: () => ApkPreferredSelectionBulkOperationResult;
+  autoSelectAllPreferredApks?: () => ApkSelectionState;
+  getApkSelectionRecommendations?: () => ApkSelectionRecommendation[];
   getActiveApkMappings?: () => ApkActiveMapping[];
   setApkSourceSelection?: (sourceKey: string, selectedPackageName: string) => ApkSelectionState;
   clearApkSourceSelection?: (sourceKey: string) => ApkSelectionState;
   getApkRuntimeConfig?: () => ApkRuntimeConfig;
+  getLastApkRepairMetadata?: () => ApkLastRepairMetadata | undefined;
   setApkExtensionsDirectory?: (directory: string) => ApkRuntimeConfig;
   clearApkExtensionsDirectory?: () => ApkRuntimeConfig;
   setApkOnlyMode?: (enabled: boolean) => ApkRuntimeConfig;
   setAdapterRequiredMode?: (enabled: boolean) => ApkRuntimeConfig;
+  getApkRuntimeHealthSummary?: () => ApkRuntimeHealthSummary;
+  getApkRuntimeActionHints?: () => ApkRuntimeActionHint[];
+  getApkRuntimeDigest?: () => ApkRuntimeDigest;
+  hasApkRuntimeDigestChanged?: (runtimeStateVersion: string | undefined) => boolean;
+  getApkRuntimePollingDecision?: (
+    previousRuntimeStateVersion: string | undefined
+  ) => ApkRuntimePollingDecision;
+  getApkRuntimeQuickStatus?: (
+    previousRuntimeStateVersion: string | undefined
+  ) => ApkRuntimeQuickStatus;
+  getApkRuntimeBootstrap?: (
+    previousRuntimeStateVersion: string | undefined
+  ) => ApkRuntimeBootstrapResult;
+  runApkRuntimeSuggestedAction?: (
+    previousRuntimeStateVersion: string | undefined
+  ) => ApkRuntimeSuggestedActionResult;
+  stabilizeApkRuntimeState?: (maxSteps?: number) => ApkRuntimeStabilizeResult;
+  prepareApkRuntimeForHoudokuStartup?: () => ApkRuntimeStartupPreparationResult;
+  runApkRuntimeMaintenanceCycle?: (
+    options?: ApkRuntimeMaintenanceCycleOptions
+  ) => ApkRuntimeMaintenanceCycleResult;
+  runApkRuntimeStrictStartupGate?: (
+    options?: ApkRuntimeStrictStartupGateOptions
+  ) => ApkRuntimeStrictStartupGateResult;
+  getApkRecommendedStrictStartupGate?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkRuntimeStrictStartupGateRecommendation;
+  runApkRecommendedStrictStartupGate?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkRuntimeStrictStartupGateResult;
+  getApkStartupRemediationPlan?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkStartupRemediationPlan;
+  runApkStartupRemediation?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkStartupRemediationRunResult;
+  runApkStartupRemediationWithOverrides?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    overrides?: ApkStartupRemediationOverrides
+  ) => ApkStartupRemediationRunResult;
+  runApkStartupRemediationUntilStable?: (
+    options?: ApkStartupRemediationUntilStableOptions
+  ) => ApkStartupRemediationUntilStableResult;
+  getApkHoudokuReadyStatus?: () => ApkHoudokuReadyStatus;
+  getApkUiModel?: (previousRuntimeStateVersion: string | undefined) => ApkUiModel;
+  repairApkRuntimeState?: () => ApkRuntimeRepairResult;
   getApkRuntimeState?: () => ApkRuntimeState;
   refreshApkRuntimeState?: () => ApkRuntimeState;
   getApkMigrationReport?: () => ApkMigrationReport;
@@ -295,19 +395,83 @@ export abstract class TiyoClientAbstract implements TiyoClientInterface {
 
   getVersion!: GetVersionFunc;
   getExtensions!: GetExtensionsFunc;
+  getDefaultApkExtensionsDirectoryPath?: () => string;
+  useDefaultApkExtensionsDirectory?: () => ApkRuntimeConfig;
+  enforceDefaultApkDirectory?: () => ApkDefaultDirectoryEnforceResult;
+  getApkDirectoryStatus?: () => ApkDirectoryStatus;
   getApkExtensionsDirectory?: () => string;
   getApkExtensions?: () => ApkExtensionInfo[];
   refreshApkExtensions?: () => ApkExtensionInfo[];
   getApkSourceMappings?: () => ApkSourceMapping[];
+  getApkUnneededExtensions?: () => ApkUnneededExtensionCandidate[];
+  cleanupUnneededApkExtensions?: (
+    options?: boolean | ApkUnneededExtensionCleanupOptions
+  ) => ApkUnneededExtensionCleanupResult;
+  getApkSourceGroups?: () => ApkSourceGroup[];
+  getApkSourceReadinessSummaries?: () => ApkSourceReadinessSummary[];
+  getApkPreferredSelectionCandidates?: () => ApkPreferredSelectionCandidate[];
   getApkSelectionState?: () => ApkSelectionState;
+  cleanupApkSelectionState?: () => ApkSelectionCleanupResult;
+  autoSelectPreferredApkWithResult?: (sourceKey: string) => ApkPreferredSelectionOperationResult;
+  autoSelectPreferredApk?: (sourceKey: string) => ApkSelectionState;
+  autoSelectAllPreferredApksWithResult?: () => ApkPreferredSelectionBulkOperationResult;
+  autoSelectAllPreferredApks?: () => ApkSelectionState;
+  getApkSelectionRecommendations?: () => ApkSelectionRecommendation[];
   getActiveApkMappings?: () => ApkActiveMapping[];
   setApkSourceSelection?: (sourceKey: string, selectedPackageName: string) => ApkSelectionState;
   clearApkSourceSelection?: (sourceKey: string) => ApkSelectionState;
   getApkRuntimeConfig?: () => ApkRuntimeConfig;
+  getLastApkRepairMetadata?: () => ApkLastRepairMetadata | undefined;
   setApkExtensionsDirectory?: (directory: string) => ApkRuntimeConfig;
   clearApkExtensionsDirectory?: () => ApkRuntimeConfig;
   setApkOnlyMode?: (enabled: boolean) => ApkRuntimeConfig;
   setAdapterRequiredMode?: (enabled: boolean) => ApkRuntimeConfig;
+  getApkRuntimeHealthSummary?: () => ApkRuntimeHealthSummary;
+  getApkRuntimeActionHints?: () => ApkRuntimeActionHint[];
+  getApkRuntimeDigest?: () => ApkRuntimeDigest;
+  hasApkRuntimeDigestChanged?: (runtimeStateVersion: string | undefined) => boolean;
+  getApkRuntimePollingDecision?: (
+    previousRuntimeStateVersion: string | undefined
+  ) => ApkRuntimePollingDecision;
+  getApkRuntimeQuickStatus?: (
+    previousRuntimeStateVersion: string | undefined
+  ) => ApkRuntimeQuickStatus;
+  getApkRuntimeBootstrap?: (
+    previousRuntimeStateVersion: string | undefined
+  ) => ApkRuntimeBootstrapResult;
+  runApkRuntimeSuggestedAction?: (
+    previousRuntimeStateVersion: string | undefined
+  ) => ApkRuntimeSuggestedActionResult;
+  stabilizeApkRuntimeState?: (maxSteps?: number) => ApkRuntimeStabilizeResult;
+  prepareApkRuntimeForHoudokuStartup?: () => ApkRuntimeStartupPreparationResult;
+  runApkRuntimeMaintenanceCycle?: (
+    options?: ApkRuntimeMaintenanceCycleOptions
+  ) => ApkRuntimeMaintenanceCycleResult;
+  runApkRuntimeStrictStartupGate?: (
+    options?: ApkRuntimeStrictStartupGateOptions
+  ) => ApkRuntimeStrictStartupGateResult;
+  getApkRecommendedStrictStartupGate?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkRuntimeStrictStartupGateRecommendation;
+  runApkRecommendedStrictStartupGate?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkRuntimeStrictStartupGateResult;
+  getApkStartupRemediationPlan?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkStartupRemediationPlan;
+  runApkStartupRemediation?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkStartupRemediationRunResult;
+  runApkStartupRemediationWithOverrides?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    overrides?: ApkStartupRemediationOverrides
+  ) => ApkStartupRemediationRunResult;
+  runApkStartupRemediationUntilStable?: (
+    options?: ApkStartupRemediationUntilStableOptions
+  ) => ApkStartupRemediationUntilStableResult;
+  getApkHoudokuReadyStatus?: () => ApkHoudokuReadyStatus;
+  getApkUiModel?: (previousRuntimeStateVersion: string | undefined) => ApkUiModel;
+  repairApkRuntimeState?: () => ApkRuntimeRepairResult;
   getApkRuntimeState?: () => ApkRuntimeState;
   refreshApkRuntimeState?: () => ApkRuntimeState;
   getApkMigrationReport?: () => ApkMigrationReport;

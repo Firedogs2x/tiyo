@@ -1,4 +1,5 @@
 import { ApkActiveMapping } from '@tiyo/common';
+import { toCanonicalSourceKey } from './apk-source-keys';
 
 export type ApkAdapterProfile = {
   metadataName: string;
@@ -8,6 +9,15 @@ export type ApkAdapterProfile = {
 type ApkAdapterProfileBuilder = (mapping: ApkActiveMapping) => ApkAdapterProfile;
 
 const MANGADEX_SOURCE_KEY = 'mangadex';
+
+const SIMPLE_LABEL_ADAPTERS: { [sourceKey: string]: string } = {
+  mangakakalot: 'MangaKakalot',
+  mangasee: 'MangaSee',
+  mangapill: 'MangaPill',
+  manganato: 'MangaNato',
+  mangakatana: 'MangaKatana',
+  mangabat: 'MangaBat',
+};
 
 const parseVersion = (value: string | undefined): number[] => {
   if (value === undefined) {
@@ -56,22 +66,46 @@ const createMangadexProfile: ApkAdapterProfileBuilder = (mapping) => {
   };
 };
 
-const ADAPTER_PROFILE_BUILDERS: { [sourceKey: string]: ApkAdapterProfileBuilder } = {
-  [MANGADEX_SOURCE_KEY]: createMangadexProfile,
+const createSimpleLabelProfileBuilder = (label: string): ApkAdapterProfileBuilder => {
+  return (mapping) => {
+    const metadataName = mapping.version ? `${label} (Keiyoushi ${mapping.version})` : `${label} (Keiyoushi APK)`;
+    return {
+      metadataName,
+      settingsOverride: {},
+    };
+  };
 };
+
+const buildAdapterProfileBuilders = (): { [sourceKey: string]: ApkAdapterProfileBuilder } => {
+  const simpleBuilders = Object.entries(SIMPLE_LABEL_ADAPTERS).reduce(
+    (acc, [sourceKey, label]) => {
+      acc[sourceKey] = createSimpleLabelProfileBuilder(label);
+      return acc;
+    },
+    {} as { [sourceKey: string]: ApkAdapterProfileBuilder }
+  );
+
+  return {
+    ...simpleBuilders,
+    [MANGADEX_SOURCE_KEY]: createMangadexProfile,
+  };
+};
+
+const ADAPTER_PROFILE_BUILDERS: { [sourceKey: string]: ApkAdapterProfileBuilder } =
+  buildAdapterProfileBuilders();
 
 export const getSupportedApkAdapterSourceKeys = (): string[] => {
   return Object.keys(ADAPTER_PROFILE_BUILDERS).sort();
 };
 
 export const hasApkAdapterProfile = (sourceKey: string): boolean => {
-  return ADAPTER_PROFILE_BUILDERS[sourceKey] !== undefined;
+  return ADAPTER_PROFILE_BUILDERS[toCanonicalSourceKey(sourceKey)] !== undefined;
 };
 
 export const getApkAdapterProfile = (
   mapping: ApkActiveMapping
 ): ApkAdapterProfile | undefined => {
-  const builder = ADAPTER_PROFILE_BUILDERS[mapping.sourceKey];
+  const builder = ADAPTER_PROFILE_BUILDERS[toCanonicalSourceKey(mapping.sourceKey)];
   if (builder === undefined) {
     return undefined;
   }

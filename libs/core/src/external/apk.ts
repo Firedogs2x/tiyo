@@ -175,6 +175,17 @@ export const getDefaultApkExtensionsDirectory = (): string => {
   return path.join(os.homedir(), '.houdoku', DEFAULT_FOLDER_NAME);
 };
 
+export const ensureApkExtensionsDirectory = (
+  directory: string = getDefaultApkExtensionsDirectory()
+): string => {
+  const normalizedDirectory = path.resolve(directory);
+  if (!fs.existsSync(normalizedDirectory)) {
+    fs.mkdirSync(normalizedDirectory, { recursive: true });
+  }
+
+  return normalizedDirectory;
+};
+
 export const getDefaultApkSelectionFilePath = (): string => {
   return path.join(path.dirname(getDefaultApkExtensionsDirectory()), SELECTION_FILE_NAME);
 };
@@ -200,6 +211,7 @@ export const readApkRuntimeConfig = (
     const directory = (parsed as { apkExtensionsDirectory?: unknown }).apkExtensionsDirectory;
     const apkOnlyMode = (parsed as { apkOnlyMode?: unknown }).apkOnlyMode;
     const adapterRequiredMode = (parsed as { adapterRequiredMode?: unknown }).adapterRequiredMode;
+    const lastRepair = (parsed as { lastRepair?: unknown }).lastRepair;
 
     const config: ApkRuntimeConfig = {};
     if (typeof directory === 'string' && directory.trim().length > 0) {
@@ -210,6 +222,19 @@ export const readApkRuntimeConfig = (
     }
     if (typeof adapterRequiredMode === 'boolean') {
       config.adapterRequiredMode = adapterRequiredMode;
+    }
+    if (
+      typeof lastRepair === 'object' &&
+      lastRepair !== null &&
+      typeof (lastRepair as { timestamp?: unknown }).timestamp === 'string' &&
+      typeof (lastRepair as { appliedCount?: unknown }).appliedCount === 'number' &&
+      typeof (lastRepair as { skippedCount?: unknown }).skippedCount === 'number'
+    ) {
+      config.lastRepair = {
+        timestamp: (lastRepair as { timestamp: string }).timestamp,
+        appliedCount: (lastRepair as { appliedCount: number }).appliedCount,
+        skippedCount: (lastRepair as { skippedCount: number }).skippedCount,
+      };
     }
 
     return config;

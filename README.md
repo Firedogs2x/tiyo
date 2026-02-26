@@ -27,6 +27,12 @@ pnpm exec nx run core:build
 
 # Publish package
 pnpm exec nx run core:publish --args="--ver=x.x.x --tag=<latest/next>"
+
+# Run APK runtime smoke test (fixture APKs)
+pnpm run smoke:apk-runtime
+
+# Run APK runtime smoke test against a real folder
+pnpm run smoke:apk-runtime -- --apk-dir="D:/Path/To/Keiyoushi APK Extensions"
 ```
 
 ### Automation

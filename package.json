@@ -5,6 +5,7 @@
   "scripts": {
     "lint": "pnpm exec nx run common:lint && pnpm exec nx run core:lint",
     "build:core": "pnpm exec nx run core:build",
+    "smoke:apk-runtime": "pnpm exec nx run core:build --output-style=static && node tools/scripts/smoke-apk-runtime.cjs",
     "publish:core": "pnpm exec nx run core:publish",
     "release:core": "pnpm exec nx run common:lint && pnpm exec nx run core:lint && pnpm exec nx run core:build"
   },
