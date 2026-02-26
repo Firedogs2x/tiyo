@@ -71,7 +71,11 @@ import {
   writeApkRuntimeConfig,
   writeApkSelectionState,
 } from './external/apk';
-import { getApkAdapterProfile } from './external/apk-adapters';
+import { getApkAdapterProfile, hasApkAdapterProfile } from './external/apk-adapters';
+import {
+  buildSourceKeyToExtensionInfo,
+  toCanonicalSourceKey,
+} from './external/apk-source-keys';
 
 export class TiyoClient extends TiyoClientAbstract {
   private _apkExtensionsCache: ApkExtensionInfo[] | undefined;
@@ -123,6 +127,19 @@ export class TiyoClient extends TiyoClientAbstract {
     writeApkRuntimeConfig(config, this._getApkConfigFilePath());
   };
 
+  private _writeRuntimeConfig = (nextConfig: ApkRuntimeConfig) => {
+    if (
+      nextConfig.apkExtensionsDirectory === undefined &&
+      nextConfig.apkOnlyMode === undefined &&
+      nextConfig.adapterRequiredMode === undefined
+    ) {
+      this._setPersistedRuntimeConfig({});
+      return;
+    }
+
+    this._setPersistedRuntimeConfig(nextConfig);
+  };
+
   override getApkRuntimeConfig = () => {
     return this._getPersistedRuntimeConfig();
   };
@@ -135,15 +152,7 @@ export class TiyoClient extends TiyoClientAbstract {
         ? { ...currentConfig, apkExtensionsDirectory: normalizedDirectory }
         : { ...currentConfig, apkExtensionsDirectory: undefined };
 
-    if (
-      nextConfig.apkExtensionsDirectory === undefined &&
-      nextConfig.apkOnlyMode === undefined &&
-      nextConfig.adapterRequiredMode === undefined
-    ) {
-      this._setPersistedRuntimeConfig({});
-    } else {
-      this._setPersistedRuntimeConfig(nextConfig);
-    }
+    this._writeRuntimeConfig(nextConfig);
 
     this.refreshApkExtensions();
     return this.getApkRuntimeConfig();
@@ -156,11 +165,7 @@ export class TiyoClient extends TiyoClientAbstract {
       apkExtensionsDirectory: undefined,
     };
 
-    if (nextConfig.apkOnlyMode === undefined && nextConfig.adapterRequiredMode === undefined) {
-      this._setPersistedRuntimeConfig({});
-    } else {
-      this._setPersistedRuntimeConfig(nextConfig);
-    }
+    this._writeRuntimeConfig(nextConfig);
 
     this.refreshApkExtensions();
     return this.getApkRuntimeConfig();
@@ -172,7 +177,7 @@ export class TiyoClient extends TiyoClientAbstract {
       ...currentConfig,
       apkOnlyMode: enabled,
     };
-    this._setPersistedRuntimeConfig(nextConfig);
+    this._writeRuntimeConfig(nextConfig);
     return this.getApkRuntimeConfig();
   };
 
@@ -182,15 +187,8 @@ export class TiyoClient extends TiyoClientAbstract {
       ...currentConfig,
       adapterRequiredMode: enabled,
     };
-    this._setPersistedRuntimeConfig(nextConfig);
+    this._writeRuntimeConfig(nextConfig);
     return this.getApkRuntimeConfig();
-  };
-
-  private _normalizeSourceKey = (value: string) => {
-    return value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '')
-      .trim();
   };
 
   private _getBuiltInMetadataList = () => {
@@ -249,7 +247,7 @@ export class TiyoClient extends TiyoClientAbstract {
 
     const entries: ApkMigrationEntry[] = this._getBuiltInMetadataList()
       .map((metadata) => {
-        const sourceKey = this._normalizeSourceKey(metadata.name);
+        const sourceKey = toCanonicalSourceKey(metadata.name);
 
         const supportedMappings = sourceMappings.filter(
           (entry) => entry.extensionId === metadata.id && entry.supported
@@ -257,12 +255,11 @@ export class TiyoClient extends TiyoClientAbstract {
         const hasSupportedMapping = supportedMappings.length > 0;
 
         const hasAnyApkForSourceKey = sourceMappings.some(
-          (entry) => this._normalizeSourceKey(entry.apk.sourceKey) === sourceKey
+          (entry) => toCanonicalSourceKey(entry.apk.sourceKey) === sourceKey
         );
 
         const hasActiveAdapter = activeMappings.some(
-          (mapping) =>
-            mapping.extensionId === metadata.id && getApkAdapterProfile(mapping) !== undefined
+          (mapping) => mapping.extensionId === metadata.id && hasApkAdapterProfile(mapping.sourceKey)
         );
 
         const status = hasActiveAdapter
@@ -310,7 +307,7 @@ export class TiyoClient extends TiyoClientAbstract {
   };
 
   private _getAdapterEligibleMappings = (activeMappings: ApkActiveMapping[]) => {
-    return activeMappings.filter((mapping) => getApkAdapterProfile(mapping) !== undefined);
+    return activeMappings.filter((mapping) => hasApkAdapterProfile(mapping.sourceKey));
   };
 
   private _getApkRuntimeMessages = (
@@ -627,18 +624,13 @@ export class TiyoClient extends TiyoClientAbstract {
   };
 
   private _getSourceKeyToExtensionInfo = () => {
-    return {
-      mangadex: {
-        id: mangadex.METADATA.id,
-        name: mangadex.METADATA.name,
-      },
-    } as { [sourceKey: string]: { id: string; name: string } };
+    return buildSourceKeyToExtensionInfo(this._getBuiltInMetadataList());
   };
 
   override getApkSourceMappings = (): ApkSourceMapping[] => {
     const sourceKeyMap = this._getSourceKeyToExtensionInfo();
     return this.getApkExtensions().map((apk) => {
-      const mapped = sourceKeyMap[apk.sourceKey];
+      const mapped = sourceKeyMap[toCanonicalSourceKey(apk.sourceKey)];
       return {
         apk,
         extensionId: mapped?.id,

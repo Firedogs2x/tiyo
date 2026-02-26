@@ -5,6 +5,10 @@ export type ApkAdapterProfile = {
   settingsOverride: { [key: string]: unknown };
 };
 
+type ApkAdapterProfileBuilder = (mapping: ApkActiveMapping) => ApkAdapterProfile;
+
+const MANGADEX_SOURCE_KEY = 'mangadex';
+
 const parseVersion = (value: string | undefined): number[] => {
   if (value === undefined) {
     return [0];
@@ -32,21 +36,15 @@ const isVersionAtLeast = (version: string | undefined, baseline: string): boolea
   return true;
 };
 
-export const getApkAdapterProfile = (
-  mapping: ApkActiveMapping
-): ApkAdapterProfile | undefined => {
-  if (mapping.sourceKey !== 'mangadex') {
-    return undefined;
-  }
-
+const createMangadexProfile: ApkAdapterProfileBuilder = (mapping) => {
   const metadataName = mapping.version
     ? `MangaDex (Keiyoushi ${mapping.version})`
     : 'MangaDex (Keiyoushi APK)';
 
-  const settingsOverride: { [key: string]: unknown } = {};
-
-  settingsOverride['API base URL'] = 'https://api.mangadex.org';
-  settingsOverride['Uploads base URL'] = 'https://uploads.mangadex.org';
+  const settingsOverride: { [key: string]: unknown } = {
+    'API base URL': 'https://api.mangadex.org',
+    'Uploads base URL': 'https://uploads.mangadex.org',
+  };
 
   if (isVersionAtLeast(mapping.version, '1.4.206')) {
     settingsOverride['Use data saver'] = false;
@@ -56,4 +54,27 @@ export const getApkAdapterProfile = (
     metadataName,
     settingsOverride,
   };
+};
+
+const ADAPTER_PROFILE_BUILDERS: { [sourceKey: string]: ApkAdapterProfileBuilder } = {
+  [MANGADEX_SOURCE_KEY]: createMangadexProfile,
+};
+
+export const getSupportedApkAdapterSourceKeys = (): string[] => {
+  return Object.keys(ADAPTER_PROFILE_BUILDERS).sort();
+};
+
+export const hasApkAdapterProfile = (sourceKey: string): boolean => {
+  return ADAPTER_PROFILE_BUILDERS[sourceKey] !== undefined;
+};
+
+export const getApkAdapterProfile = (
+  mapping: ApkActiveMapping
+): ApkAdapterProfile | undefined => {
+  const builder = ADAPTER_PROFILE_BUILDERS[mapping.sourceKey];
+  if (builder === undefined) {
+    return undefined;
+  }
+
+  return builder(mapping);
 };

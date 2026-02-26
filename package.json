@@ -2,7 +2,12 @@
   "name": "@tiyo/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "lint": "pnpm exec nx run common:lint && pnpm exec nx run core:lint",
+    "build:core": "pnpm exec nx run core:build",
+    "publish:core": "pnpm exec nx run core:publish",
+    "release:core": "pnpm exec nx run common:lint && pnpm exec nx run core:lint && pnpm exec nx run core:build"
+  },
   "private": true,
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.4",

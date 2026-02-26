@@ -19,12 +19,21 @@ Prerequisites:
 # Install package dependencies
 pnpm install
 
+# Lint @tiyo/common and @tiyo/core
+pnpm run lint
+
 # Build @tiyo/core, which will also build @tiyo/common
 pnpm exec nx run core:build
 
 # Publish package
 pnpm exec nx run core:publish --args="--ver=x.x.x --tag=<latest/next>"
 ```
+
+### Automation
+
+- GitHub Actions workflow: `.github/workflows/core-lint-build-publish.yml`
+- On `push`/`pull_request` to `main`: runs lint + build.
+- Manual publish (`workflow_dispatch`): requires inputs `version`, `tag` and secret `NPM_TOKEN`.
 
 This is an Nx monorepo. You can run build/test tasks using the CLI commands
 (such as the ones above), but I recommend using the VSCode extension:
