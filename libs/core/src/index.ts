@@ -111,6 +111,12 @@ import {
   ApkRuntimeQuickStatus,
   ApkRuntimeRepairResult,
   ApkRuntimeStartupPreparationResult,
+  ApkRuntimeFilesystemSyncResult,
+  ApkHoudokuPollingUpdateResult,
+  ApkHoudokuApkMethodSetupResult,
+  ApkHoudokuApkSourceMethodSetupResult,
+  ApkHoudokuApkBulkSourceMethodSetupResult,
+  ApkHoudokuApkBulkSourceEntryResult,
   ApkRuntimeStabilizeResult,
   ApkRuntimeStabilizeStep,
   ApkRuntimeSuggestedActionResult,
@@ -1634,6 +1640,46 @@ export class TiyoClient extends TiyoClientAbstract {
     };
   };
 
+  override syncApkRuntimeWithFilesystem = (
+    previousRuntimeStateVersion?: string
+  ): ApkRuntimeFilesystemSyncResult => {
+    const baselineRuntimeStateVersion =
+      previousRuntimeStateVersion ?? this.getApkRuntimeDigest().runtimeStateVersion;
+
+    this.refreshApkExtensions();
+    const autoSelectResult = this.autoSelectAllPreferredApksWithResult();
+    const runtimeState = this.getApkRuntimeState();
+    const activeSourceKeys = runtimeState.activeMappings
+      .map((entry) => entry.sourceKey)
+      .sort((left, right) => left.localeCompare(right));
+
+    return {
+      previousRuntimeStateVersion,
+      runtimeStateVersion: runtimeState.runtimeStateVersion,
+      changed: runtimeState.runtimeStateVersion !== baselineRuntimeStateVersion,
+      activeSourceKeys,
+      autoSelectResult,
+      runtimeState,
+    };
+  };
+
+  override getApkHoudokuPollingUpdate = (
+    previousRuntimeStateVersion?: string,
+    profile: ApkRuntimeStrictStartupProfile = 'test'
+  ): ApkHoudokuPollingUpdateResult => {
+    const sync = this.syncApkRuntimeWithFilesystem(previousRuntimeStateVersion);
+    const launchModel = this.getApkHoudokuLaunchModel(profile, previousRuntimeStateVersion);
+
+    return {
+      changed: sync.changed,
+      previousRuntimeStateVersion,
+      runtimeStateVersion: sync.runtimeStateVersion,
+      activeSourceKeys: sync.activeSourceKeys,
+      sync,
+      launchModel,
+    };
+  };
+
   override stabilizeApkRuntimeState = (maxSteps: number = 3): ApkRuntimeStabilizeResult => {
     const normalizedMaxSteps = Number.isFinite(maxSteps) && maxSteps > 0 ? Math.floor(maxSteps) : 1;
     const steps: ApkRuntimeStabilizeStep[] = [];
@@ -1693,6 +1739,273 @@ export class TiyoClient extends TiyoClientAbstract {
       autoSelectResult,
       runtimeState,
     };
+  };
+
+  override runApkHoudokuApkMethodSetup = (
+    targetDirectory?: string
+  ): ApkHoudokuApkMethodSetupResult => {
+    const normalizedTargetDirectory =
+      targetDirectory?.trim() && targetDirectory.trim().length > 0
+        ? targetDirectory.trim()
+        : this.getDefaultApkExtensionsDirectoryPath();
+
+    this.setApkExtensionsDirectory(normalizedTargetDirectory);
+    this.refreshApkExtensions();
+
+    const runtimeConfig = this.setApkOnlyMode(true);
+    const cleanupResult = this.cleanupApkSelectionState();
+    const autoSelectResult = this.autoSelectAllPreferredApksWithResult();
+    const runtimeState = this.refreshApkRuntimeState();
+    const readyStatus = this.getApkHoudokuReadyStatus();
+
+    const startupPreparation: ApkRuntimeStartupPreparationResult = {
+      directoryStatus: this.getApkDirectoryStatus(),
+      runtimeConfig,
+      cleanupResult,
+      autoSelectResult,
+      runtimeState,
+    };
+
+    const usesTargetDirectory =
+      path.resolve(startupPreparation.runtimeState.apkExtensionsDirectory) ===
+      path.resolve(normalizedTargetDirectory);
+    const apkOnlyMode = startupPreparation.runtimeState.runtimeConfig.apkOnlyMode === true;
+    const activeSourceKeys = startupPreparation.runtimeState.activeMappings
+      .map((entry) => entry.sourceKey)
+      .sort((left, right) => left.localeCompare(right));
+
+    const reasons: string[] = [];
+    if (!usesTargetDirectory) {
+      reasons.push('Runtime did not keep the requested APK extensions directory.');
+    }
+    if (!apkOnlyMode) {
+      reasons.push('APK-only mode is not enabled.');
+    }
+    if (activeSourceKeys.length === 0) {
+      reasons.push('No active APK source mappings were resolved.');
+    }
+
+    return {
+      targetDirectory: normalizedTargetDirectory,
+      startupPreparation,
+      readyStatus,
+      usesTargetDirectory,
+      apkOnlyMode,
+      activeSourceKeys,
+      success: reasons.length === 0,
+      reasons,
+    };
+  };
+
+  override runApkHoudokuApkSourceMethodSetup = (
+    sourceKey: string,
+    targetDirectory?: string,
+    requestedPackageName?: string
+  ): ApkHoudokuApkSourceMethodSetupResult => {
+    const normalizedSourceKey = this._toSourceKey(sourceKey.trim());
+    const normalizedRequestedPackageName = requestedPackageName?.trim();
+    const setup = this.runApkHoudokuApkMethodSetup(targetDirectory);
+
+    const reasons: string[] = [...setup.reasons];
+    if (normalizedSourceKey.length === 0) {
+      reasons.push('Source key is required.');
+      return {
+        sourceKey: normalizedSourceKey,
+        requestedPackageName: normalizedRequestedPackageName,
+        setup,
+        selectedPackageName: undefined,
+        activePackageName: undefined,
+        extensionId: undefined,
+        extensionVisibleInGetExtensions: false,
+        success: false,
+        reasons,
+      };
+    }
+
+    const sourceGroup = this.getApkSourceGroups().find(
+      (entry) => this._toSourceKey(entry.sourceKey) === normalizedSourceKey
+    );
+    if (sourceGroup === undefined) {
+      reasons.push(`Source '${normalizedSourceKey}' was not found in APK mappings.`);
+      return {
+        sourceKey: normalizedSourceKey,
+        requestedPackageName: normalizedRequestedPackageName,
+        setup,
+        selectedPackageName: undefined,
+        activePackageName: undefined,
+        extensionId: undefined,
+        extensionVisibleInGetExtensions: false,
+        success: false,
+        reasons,
+      };
+    }
+
+    const supportedOptions = sourceGroup.options.filter((entry) => entry.supported);
+    if (supportedOptions.length === 0) {
+      reasons.push(`Source '${normalizedSourceKey}' has no supported APK options.`);
+      return {
+        sourceKey: normalizedSourceKey,
+        requestedPackageName: normalizedRequestedPackageName,
+        setup,
+        selectedPackageName: undefined,
+        activePackageName: undefined,
+        extensionId: sourceGroup.extensionId,
+        extensionVisibleInGetExtensions: false,
+        success: false,
+        reasons,
+      };
+    }
+
+    const packageToSelect =
+      normalizedRequestedPackageName !== undefined && normalizedRequestedPackageName.length > 0
+        ? normalizedRequestedPackageName
+        : (() => {
+            this.autoSelectPreferredApkWithResult(normalizedSourceKey);
+            const selectedPackageName =
+              this.getApkSelectionState()[normalizedSourceKey]?.selectedPackageName;
+            return selectedPackageName;
+          })();
+    if (packageToSelect === undefined || packageToSelect.length === 0) {
+      reasons.push(
+        `Source '${normalizedSourceKey}' does not have a preferred APK candidate to select.`
+      );
+      return {
+        sourceKey: normalizedSourceKey,
+        requestedPackageName: normalizedRequestedPackageName,
+        setup,
+        selectedPackageName: undefined,
+        activePackageName: undefined,
+        extensionId: sourceGroup.extensionId,
+        extensionVisibleInGetExtensions: false,
+        success: false,
+        reasons,
+      };
+    }
+    const selectedOption = supportedOptions.find((entry) => entry.packageName === packageToSelect);
+    if (selectedOption === undefined) {
+      reasons.push(
+        `Requested package '${packageToSelect}' is not supported for source '${normalizedSourceKey}'.`
+      );
+      return {
+        sourceKey: normalizedSourceKey,
+        requestedPackageName: normalizedRequestedPackageName,
+        setup,
+        selectedPackageName: undefined,
+        activePackageName: undefined,
+        extensionId: sourceGroup.extensionId,
+        extensionVisibleInGetExtensions: false,
+        success: false,
+        reasons,
+      };
+    }
+
+    this.setApkSourceSelection(normalizedSourceKey, packageToSelect);
+    const runtimeState = this.refreshApkRuntimeState();
+    const activeMapping = runtimeState.activeMappings.find(
+      (entry) => entry.sourceKey === normalizedSourceKey
+    );
+    const extensions = this.getExtensions();
+    const extensionVisibleInGetExtensions =
+      activeMapping !== undefined && extensions[activeMapping.extensionId] !== undefined;
+
+    if (activeMapping === undefined) {
+      reasons.push(`Source '${normalizedSourceKey}' did not resolve to an active mapping.`);
+    }
+
+    return {
+      sourceKey: normalizedSourceKey,
+      requestedPackageName: normalizedRequestedPackageName,
+      setup,
+      selectedPackageName: selectedOption.packageName,
+      activePackageName: activeMapping?.selectedPackageName,
+      extensionId: activeMapping?.extensionId || sourceGroup.extensionId,
+      extensionVisibleInGetExtensions,
+      success:
+        reasons.length === 0 &&
+        activeMapping !== undefined &&
+        activeMapping.selectedPackageName === selectedOption.packageName &&
+        extensionVisibleInGetExtensions,
+      reasons,
+    };
+  };
+
+  override runApkHoudokuApkBulkSourceMethodSetup = (
+    targetDirectory?: string
+  ): ApkHoudokuApkBulkSourceMethodSetupResult => {
+    const setup = this.runApkHoudokuApkMethodSetup(targetDirectory);
+    const reasons: string[] = [...setup.reasons];
+    const runtimeState = this.refreshApkRuntimeState();
+    const selectionState = this.getApkSelectionState();
+    const activeMappingsBySource = new Map(
+      runtimeState.activeMappings.map((entry) => [entry.sourceKey, entry])
+    );
+    const extensions = this.getExtensions();
+
+    const eligibleSourceGroups = runtimeState.sourceGroups.filter((group) => {
+      const selectedPackageName = selectionState[group.sourceKey]?.selectedPackageName;
+      const activeMapping = activeMappingsBySource.get(group.sourceKey);
+      const hasSupportedOption = group.options.some((entry) => entry.supported);
+
+      return hasSupportedOption || selectedPackageName !== undefined || activeMapping !== undefined;
+    });
+
+    const sourceResults: ApkHoudokuApkBulkSourceEntryResult[] = eligibleSourceGroups.map((group) => {
+      const selectedPackageName = selectionState[group.sourceKey]?.selectedPackageName;
+      const activeMapping = activeMappingsBySource.get(group.sourceKey);
+      const extensionVisibleInGetExtensions =
+        activeMapping !== undefined && extensions[activeMapping.extensionId] !== undefined;
+
+      const entryReasons: string[] = [];
+      if (selectedPackageName === undefined) {
+        entryReasons.push('No package is selected for source.');
+      }
+      if (activeMapping === undefined) {
+        entryReasons.push('Selected package did not resolve to an active mapping.');
+      }
+      if (!extensionVisibleInGetExtensions) {
+        entryReasons.push('Resolved extension is not visible in getExtensions().');
+      }
+
+      return {
+        sourceKey: group.sourceKey,
+        selectedPackageName,
+        activePackageName: activeMapping?.selectedPackageName,
+        extensionId: activeMapping?.extensionId || group.extensionId,
+        extensionVisibleInGetExtensions,
+        success: entryReasons.length === 0,
+        reasons: entryReasons,
+      };
+    });
+
+    if (sourceResults.length === 0) {
+      reasons.push('No APK source groups were discovered.');
+    }
+
+    const successfulSourceKeys = sourceResults
+      .filter((entry) => entry.success)
+      .map((entry) => entry.sourceKey)
+      .sort((left, right) => left.localeCompare(right));
+    const failedSourceKeys = sourceResults
+      .filter((entry) => !entry.success)
+      .map((entry) => entry.sourceKey)
+      .sort((left, right) => left.localeCompare(right));
+
+    if (failedSourceKeys.length > 0) {
+      reasons.push(`Failed to activate ${failedSourceKeys.length} source mapping(s).`);
+    }
+
+    return {
+      setup,
+      sourceResults,
+      successfulSourceKeys,
+      failedSourceKeys,
+      success: reasons.length === 0,
+      reasons,
+    };
+  };
+
+  override runApkHoudokuInstalledApkMethodSetup = (): ApkHoudokuApkBulkSourceMethodSetupResult => {
+    return this.runApkHoudokuApkBulkSourceMethodSetup(this.getDefaultApkExtensionsDirectoryPath());
   };
 
   override getApkHoudokuReadyStatus = (): ApkHoudokuReadyStatus => {

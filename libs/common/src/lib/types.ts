@@ -439,6 +439,66 @@ export type ApkRuntimeStartupPreparationResult = {
   runtimeState: ApkRuntimeState;
 };
 
+export type ApkRuntimeFilesystemSyncResult = {
+  previousRuntimeStateVersion: string | undefined;
+  runtimeStateVersion: string;
+  changed: boolean;
+  activeSourceKeys: string[];
+  autoSelectResult: ApkPreferredSelectionBulkOperationResult;
+  runtimeState: ApkRuntimeState;
+};
+
+export type ApkHoudokuPollingUpdateResult = {
+  changed: boolean;
+  previousRuntimeStateVersion: string | undefined;
+  runtimeStateVersion: string;
+  activeSourceKeys: string[];
+  sync: ApkRuntimeFilesystemSyncResult;
+  launchModel: ApkHoudokuLaunchModel;
+};
+
+export type ApkHoudokuApkMethodSetupResult = {
+  targetDirectory: string;
+  startupPreparation: ApkRuntimeStartupPreparationResult;
+  readyStatus: ApkHoudokuReadyStatus;
+  usesTargetDirectory: boolean;
+  apkOnlyMode: boolean;
+  activeSourceKeys: string[];
+  success: boolean;
+  reasons: string[];
+};
+
+export type ApkHoudokuApkSourceMethodSetupResult = {
+  sourceKey: string;
+  requestedPackageName: string | undefined;
+  setup: ApkHoudokuApkMethodSetupResult;
+  selectedPackageName: string | undefined;
+  activePackageName: string | undefined;
+  extensionId: string | undefined;
+  extensionVisibleInGetExtensions: boolean;
+  success: boolean;
+  reasons: string[];
+};
+
+export type ApkHoudokuApkBulkSourceEntryResult = {
+  sourceKey: string;
+  selectedPackageName: string | undefined;
+  activePackageName: string | undefined;
+  extensionId: string | undefined;
+  extensionVisibleInGetExtensions: boolean;
+  success: boolean;
+  reasons: string[];
+};
+
+export type ApkHoudokuApkBulkSourceMethodSetupResult = {
+  setup: ApkHoudokuApkMethodSetupResult;
+  sourceResults: ApkHoudokuApkBulkSourceEntryResult[];
+  successfulSourceKeys: string[];
+  failedSourceKeys: string[];
+  success: boolean;
+  reasons: string[];
+};
+
 export type ApkHoudokuReadyLevel = 'ready' | 'warning' | 'blocked';
 
 export type ApkHoudokuReadyStatus = {

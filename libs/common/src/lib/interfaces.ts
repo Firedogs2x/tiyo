@@ -19,6 +19,11 @@ import {
   ApkRuntimeStabilizeResult,
   ApkRuntimeSuggestedActionResult,
   ApkRuntimeStartupPreparationResult,
+  ApkRuntimeFilesystemSyncResult,
+  ApkHoudokuPollingUpdateResult,
+  ApkHoudokuApkMethodSetupResult,
+  ApkHoudokuApkSourceMethodSetupResult,
+  ApkHoudokuApkBulkSourceMethodSetupResult,
   ApkRuntimeMaintenanceCycleOptions,
   ApkRuntimeMaintenanceCycleResult,
   ApkRuntimeStrictStartupGateOptions,
@@ -415,8 +420,25 @@ export interface TiyoClientInterface {
   runApkRuntimeSuggestedAction?: (
     previousRuntimeStateVersion: string | undefined
   ) => ApkRuntimeSuggestedActionResult;
+  syncApkRuntimeWithFilesystem?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkRuntimeFilesystemSyncResult;
+  getApkHoudokuPollingUpdate?: (
+    previousRuntimeStateVersion?: string,
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkHoudokuPollingUpdateResult;
   stabilizeApkRuntimeState?: (maxSteps?: number) => ApkRuntimeStabilizeResult;
   prepareApkRuntimeForHoudokuStartup?: () => ApkRuntimeStartupPreparationResult;
+  runApkHoudokuApkMethodSetup?: (targetDirectory?: string) => ApkHoudokuApkMethodSetupResult;
+  runApkHoudokuApkSourceMethodSetup?: (
+    sourceKey: string,
+    targetDirectory?: string,
+    requestedPackageName?: string
+  ) => ApkHoudokuApkSourceMethodSetupResult;
+  runApkHoudokuApkBulkSourceMethodSetup?: (
+    targetDirectory?: string
+  ) => ApkHoudokuApkBulkSourceMethodSetupResult;
+  runApkHoudokuInstalledApkMethodSetup?: () => ApkHoudokuApkBulkSourceMethodSetupResult;
   runApkRuntimeMaintenanceCycle?: (
     options?: ApkRuntimeMaintenanceCycleOptions
   ) => ApkRuntimeMaintenanceCycleResult;
@@ -701,8 +723,25 @@ export abstract class TiyoClientAbstract implements TiyoClientInterface {
   runApkRuntimeSuggestedAction?: (
     previousRuntimeStateVersion: string | undefined
   ) => ApkRuntimeSuggestedActionResult;
+  syncApkRuntimeWithFilesystem?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkRuntimeFilesystemSyncResult;
+  getApkHoudokuPollingUpdate?: (
+    previousRuntimeStateVersion?: string,
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkHoudokuPollingUpdateResult;
   stabilizeApkRuntimeState?: (maxSteps?: number) => ApkRuntimeStabilizeResult;
   prepareApkRuntimeForHoudokuStartup?: () => ApkRuntimeStartupPreparationResult;
+  runApkHoudokuApkMethodSetup?: (targetDirectory?: string) => ApkHoudokuApkMethodSetupResult;
+  runApkHoudokuApkSourceMethodSetup?: (
+    sourceKey: string,
+    targetDirectory?: string,
+    requestedPackageName?: string
+  ) => ApkHoudokuApkSourceMethodSetupResult;
+  runApkHoudokuApkBulkSourceMethodSetup?: (
+    targetDirectory?: string
+  ) => ApkHoudokuApkBulkSourceMethodSetupResult;
+  runApkHoudokuInstalledApkMethodSetup?: () => ApkHoudokuApkBulkSourceMethodSetupResult;
   runApkRuntimeMaintenanceCycle?: (
     options?: ApkRuntimeMaintenanceCycleOptions
   ) => ApkRuntimeMaintenanceCycleResult;

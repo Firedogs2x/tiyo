@@ -28,75 +28,85 @@ const getCliArgValue = (argName) => {
   return entry.slice(prefix.length).trim();
 };
 
+const hasCliFlag = (flagName) => {
+  return process.argv.includes(flagName);
+};
+
+const hasCliArg = (argName) => {
+  const prefix = `${argName}=`;
+  return process.argv.some((value) => value.startsWith(prefix));
+};
+
 const run = () => {
-  const apkDir = path.resolve(getCliArgValue('--apk-dir') || process.env.TIYO_SMOKE_APK_DIR || DEFAULT_APK_DIR);
+  const requestedApkDir = getCliArgValue('--apk-dir') || process.env.TIYO_SMOKE_APK_DIR;
+  const apkDir = path.resolve(requestedApkDir || DEFAULT_APK_DIR);
   const sourceKey = (getCliArgValue('--source-key') || DEFAULT_SOURCE_KEY).trim().toLowerCase();
   const requestedPackageName = getCliArgValue('--package-name');
+  const allSources = hasCliFlag('--all-sources');
+  const hasSourceArg = hasCliArg('--source-key');
+  const hasDirectoryArg = hasCliArg('--apk-dir') || process.env.TIYO_SMOKE_APK_DIR !== undefined;
+  const mode = hasSourceArg ? 'single-source' : allSources || hasDirectoryArg ? 'all-sources' : 'installed';
 
   process.env.TIYO_APK_EXTENSIONS_DIR = apkDir;
 
   const client = new TiyoClient({});
-  client.setApkExtensionsDirectory(apkDir);
-  client.refreshApkExtensions();
-
-  const sourceGroup = client
-    .getApkSourceGroups()
-    .find((entry) => entry.sourceKey.toLowerCase() === sourceKey);
-
-  if (sourceGroup === undefined) {
-    console.error('SMOKE RESULT: FAIL');
-    console.error(`Source '${sourceKey}' was not found from APK mappings.`);
-    process.exit(1);
-  }
-
-  const supportedOptions = sourceGroup.options.filter((entry) => entry.supported);
-  if (supportedOptions.length === 0) {
-    console.error('SMOKE RESULT: FAIL');
-    console.error(`Source '${sourceKey}' has no supported APK options.`);
-    process.exit(1);
-  }
-
-  const packageToSelect =
-    requestedPackageName && requestedPackageName.length > 0
-      ? requestedPackageName
-      : supportedOptions[0].packageName;
-
-  const requestedOption = supportedOptions.find((entry) => entry.packageName === packageToSelect);
-  if (requestedOption === undefined) {
-    console.error('SMOKE RESULT: FAIL');
-    console.error(`Requested package '${packageToSelect}' is not a supported option for '${sourceKey}'.`);
-    process.exit(1);
-  }
-
-  client.setApkSourceSelection(sourceKey, packageToSelect);
-  client.setApkOnlyMode(true);
-
-  const runtimeState = client.refreshApkRuntimeState();
-  const activeMapping = runtimeState.activeMappings.find((entry) => entry.sourceKey === sourceKey);
-  const extensions = client.getExtensions();
-
-  const extensionVisible =
-    activeMapping !== undefined &&
-    activeMapping.extensionId !== undefined &&
-    extensions[activeMapping.extensionId] !== undefined;
+  const sourceSetupResult =
+    mode === 'single-source'
+      ? client.runApkHoudokuApkSourceMethodSetup(sourceKey, apkDir, requestedPackageName)
+      : undefined;
+  const bulkSetupResult =
+    mode === 'all-sources'
+      ? client.runApkHoudokuApkBulkSourceMethodSetup(apkDir)
+      : mode === 'installed'
+      ? client.runApkHoudokuInstalledApkMethodSetup()
+      : undefined;
+  const runtimeState =
+    mode === 'single-source'
+      ? sourceSetupResult.setup.startupPreparation.runtimeState
+      : bulkSetupResult.setup.startupPreparation.runtimeState;
 
   const pass =
     fs.existsSync(apkDir) &&
     runtimeState.runtimeConfig.apkOnlyMode === true &&
-    activeMapping !== undefined &&
-    activeMapping.selectedPackageName === packageToSelect &&
-    extensionVisible;
+    (mode === 'single-source' ? sourceSetupResult.success : bulkSetupResult.success);
 
   console.log('--- Houdoku APK Override Smoke ---');
   console.log('APK directory:', apkDir);
   console.log('APK directory exists:', fs.existsSync(apkDir));
-  console.log('Source key:', sourceKey);
-  console.log('Requested package:', packageToSelect);
-  console.log('Supported package count:', supportedOptions.length);
-  console.log('Active package:', activeMapping ? activeMapping.selectedPackageName : 'none');
+  console.log('Mode:', mode);
+  console.log('Setup success:', mode === 'single-source' ? sourceSetupResult.setup.success : bulkSetupResult.setup.success);
+  console.log(
+    'Setup active source count:',
+    mode === 'single-source'
+      ? sourceSetupResult.setup.activeSourceKeys.length
+      : bulkSetupResult.setup.activeSourceKeys.length
+  );
+  console.log('Source key:', mode === 'single-source' ? sourceKey : 'all');
+  console.log('Requested package:', mode === 'single-source' ? sourceSetupResult.requestedPackageName || 'auto' : 'auto-all');
+  console.log('Selected package:', mode === 'single-source' ? sourceSetupResult.selectedPackageName || 'none' : 'multiple');
+  console.log('Active package:', mode === 'single-source' ? sourceSetupResult.activePackageName || 'none' : 'multiple');
   console.log('APK-only mode:', runtimeState.runtimeConfig.apkOnlyMode === true);
-  console.log('Mapped extension id:', activeMapping ? activeMapping.extensionId : 'none');
-  console.log('Visible in getExtensions:', extensionVisible);
+  console.log('Mapped extension id:', mode === 'single-source' ? sourceSetupResult.extensionId || 'none' : 'multiple');
+  console.log(
+    'Visible in getExtensions:',
+    mode === 'single-source'
+      ? sourceSetupResult.extensionVisibleInGetExtensions
+      : `${bulkSetupResult.successfulSourceKeys.length}/${bulkSetupResult.sourceResults.length}`
+  );
+  console.log('Source setup success:', mode === 'single-source' ? sourceSetupResult.success : bulkSetupResult.success);
+  if (mode !== 'single-source') {
+    console.log('Successful source keys:', bulkSetupResult.successfulSourceKeys.join(', ') || 'none');
+    if (bulkSetupResult.failedSourceKeys.length > 0) {
+      console.log('Failed source keys:', bulkSetupResult.failedSourceKeys.join(', '));
+      console.log('Source setup reasons:', bulkSetupResult.reasons.join(' | '));
+    }
+  } else if (!sourceSetupResult.success && sourceSetupResult.reasons.length > 0) {
+    console.log('Source setup reasons:', sourceSetupResult.reasons.join(' | '));
+  }
+
+  if (mode === 'installed') {
+    console.log('Installed method directory:', runtimeState.apkExtensionsDirectory);
+  }
 
   if (pass) {
     console.log('SMOKE RESULT: PASS');

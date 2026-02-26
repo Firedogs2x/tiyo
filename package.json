@@ -6,6 +6,11 @@
     "lint": "pnpm exec nx run common:lint && pnpm exec nx run core:lint",
     "build:core": "pnpm exec nx run core:build",
     "smoke:apk-runtime": "pnpm exec nx run core:build --output-style=static && node tools/scripts/smoke-apk-runtime.cjs",
+    "poll:houdoku": "pnpm exec nx run core:build --output-style=static && node tools/scripts/poll-apk-runtime.cjs --interval-ms=300000",
+    "houdoku:update": "pnpm exec nx run core:build --output-style=static && node tools/scripts/houdoku-update-once.cjs",
+    "houdoku:ready": "pnpm houdoku:update",
+    "smoke:houdoku": "pnpm exec nx run core:build --output-style=static && node tools/scripts/smoke-apk-runtime.cjs --apk-dir=\"C:/Users/dnvm8/AppData/Roaming/Houdoku/Keiyoushi APK Extensions\" --source-key=mangadex",
+    "smoke:houdoku:all": "pnpm exec nx run core:build --output-style=static && node tools/scripts/smoke-apk-runtime.cjs --apk-dir=\"C:/Users/dnvm8/AppData/Roaming/Houdoku/Keiyoushi APK Extensions\" --all-sources",
     "publish:core": "pnpm exec nx run core:publish",
     "release:core": "pnpm exec nx run common:lint && pnpm exec nx run core:lint && pnpm exec nx run core:build"
   },

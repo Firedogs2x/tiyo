@@ -10,6 +10,37 @@ Run `nx build core` to build the library.
 
 `TiyoClient` now exposes optional APIs for folder-based Keiyoushi APK discovery and source selection.
 
+### Minimal Houdoku method flow
+
+- `runApkHoudokuApkMethodSetup(targetDirectory?)`
+  - One-call runtime setup for Houdoku APK mode.
+  - Sets/normalizes APK directory, enables APK-only mode, and returns readiness checks.
+  - Returns `{ setupResult, readyStatus, success, reasons }`.
+
+- `runApkHoudokuApkSourceMethodSetup(sourceKey, targetDirectory?, requestedPackageName?)`
+  - One-call source setup built on top of runtime setup.
+  - Ensures runtime is prepared, applies preferred/requested package selection for one source,
+    and verifies active mapping + extension visibility.
+  - Returns `{ runtimeSetup, sourceSelection, sourceReadiness, activePackageName, visibleInExtensions, success, reasons }`.
+
+- `runApkHoudokuApkBulkSourceMethodSetup(targetDirectory?)`
+  - One-call setup for all discovered sources with APK options.
+  - Verifies each source has a selected package, active mapping, and visible extension client.
+  - Returns `{ setup, sourceResults, successfulSourceKeys, failedSourceKeys, success, reasons }`.
+
+- `runApkHoudokuInstalledApkMethodSetup()`
+  - One-call setup for the default Houdoku APK folder (`%APPDATA%/Houdoku/Keiyoushi APK Extensions`).
+  - Uses bulk source setup + verification with no input args.
+
+- For local verification against the Houdoku folder and MangaDex replacement, run:
+  - `pnpm smoke:apk-runtime` (default installed method: `runApkHoudokuInstalledApkMethodSetup()`)
+  - `pnpm smoke:houdoku` (single-source MangaDex path)
+  - `pnpm smoke:houdoku:all` (explicit all-sources path)
+  - `pnpm houdoku:update` (one-shot JSON payload; validates a good source APK, default `mangadex`)
+  - `pnpm houdoku:ready` (same check, fails with non-zero exit if APK data is not usable by Houdoku)
+  - `pnpm poll:houdoku` (method-based filesystem polling every 5 minutes with source verification)
+  - Optional args for both scripts: `--source-key=<source>`, `--package-name=<package>`, `--apk-dir=<path>`
+
 ### One-call runtime snapshot
 
 - `getApkRuntimeState()`
@@ -111,6 +142,16 @@ Run `nx build core` to build the library.
   - Executes the backend-suggested next action from quick status.
   - Returns `{ action, performed, quickStatus, digest, runtimeState, repairResult }`.
 
+- `syncApkRuntimeWithFilesystem(previousRuntimeStateVersion?)`
+  - One-call resync for APK add/delete changes.
+  - Refreshes APK files from disk, cleans invalid selections, reapplies preferred selections,
+    and returns `{ changed, runtimeStateVersion, activeSourceKeys, runtimeState }`.
+
+- `getApkHoudokuPollingUpdate(previousRuntimeStateVersion?, profile?)`
+  - One-call polling method for Houdoku integration.
+  - Runs filesystem sync and returns updated launch model payload in one response so
+    callers can pass refreshed readiness/blocker state directly to Houdoku.
+
 - `stabilizeApkRuntimeState(maxSteps?)`
   - Repeatedly executes suggested actions until no action is performed or max steps is reached.
   - Returns `{ steps, repairsRun, finalQuickStatus, finalDigest, finalRuntimeState }`.
@@ -125,6 +166,14 @@ Run `nx build core` to build the library.
   - Enforces default APK directory, enables APK-only mode, cleans stale selections,
     applies preferred source selections, then returns refreshed runtime state.
   - Returns `{ directoryStatus, runtimeConfig, cleanupResult, autoSelectResult, runtimeState }`.
+
+- `runApkHoudokuApkMethodSetup(targetDirectory?)`
+  - Method-first alternative focused on minimal setup + readiness checks.
+  - Returns `{ setupResult, readyStatus, success, reasons }`.
+
+- `runApkHoudokuApkSourceMethodSetup(sourceKey, targetDirectory?, requestedPackageName?)`
+  - Method-first source setup for Houdoku testing (for example, `mangadex`).
+  - Returns source-level selection/readiness plus final active package verification.
 
 - `getApkHoudokuReadyStatus()`
   - Returns a compact startup-readiness status for Houdoku UI badges/checks.
