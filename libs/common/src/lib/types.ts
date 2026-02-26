@@ -563,3 +563,629 @@ export type ApkStartupRemediationUntilStableResult = {
   stopReason: ApkStartupRemediationUntilStableStopReason;
   converged: boolean;
 };
+
+export type ApkStartupExecutionSummary = {
+  profile: ApkRuntimeStrictStartupProfile;
+  runtimeStateVersion: string;
+  directoryStatus: ApkDirectoryStatus;
+  readyStatus: ApkHoudokuReadyStatus;
+  recommendedGatePassed: boolean;
+  recommendedGateReasons: string[];
+  suggestedNextAction: ApkRuntimeQuickStatusNextAction;
+  actionHintsCount: number;
+  activeMappingCount: number;
+  unsupportedApkCount: number;
+  unneededApkCount: number;
+};
+
+export type ApkHoudokuTestReadyOptions = {
+  profile?: ApkRuntimeStrictStartupProfile;
+  overrides?: ApkStartupRemediationOverrides;
+  maxRemediationRuns?: number;
+};
+
+export type ApkHoudokuTestReadyResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  maxRemediationRuns: number;
+  usedOverrides: ApkStartupRemediationOverrides | undefined;
+  remediation: ApkStartupRemediationUntilStableResult;
+  summary: ApkStartupExecutionSummary;
+  readyForHoudokuTest: boolean;
+  reasons: string[];
+};
+
+export type ApkHoudokuLaunchModel = {
+  profile: ApkRuntimeStrictStartupProfile;
+  uiModel: ApkUiModel;
+  startupSummary: ApkStartupExecutionSummary;
+  recommendedStrictGate: ApkRuntimeStrictStartupGateRecommendation;
+  remediationPlan: ApkStartupRemediationPlan;
+  canRunHoudokuTest: boolean;
+  blockerReasons: string[];
+  usedOverrides?: ApkStartupRemediationOverrides;
+};
+
+export type ApkHoudokuLaunchModelOptions = {
+  profile?: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion?: string;
+  overrides?: ApkStartupRemediationOverrides;
+};
+
+export type ApkHoudokuTestingPreset = {
+  profile: ApkRuntimeStrictStartupProfile;
+  overrides: ApkStartupRemediationOverrides;
+  notes: string[];
+};
+
+export type ApkHoudokuTestingModel = {
+  profile: ApkRuntimeStrictStartupProfile;
+  preset: ApkHoudokuTestingPreset;
+  launchModel: ApkHoudokuLaunchModel;
+  testReady: ApkHoudokuTestReadyResult;
+};
+
+export type ApkHoudokuTestingModelOptions = {
+  profile?: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion?: string;
+  maxRemediationRuns?: number;
+  overrides?: ApkStartupRemediationOverrides;
+};
+
+export type ApkHoudokuIntegrationStep = {
+  code: string;
+  title: string;
+  method: string;
+  description: string;
+  blocking: boolean;
+};
+
+export type ApkHoudokuIntegrationPlan = {
+  profile: ApkRuntimeStrictStartupProfile;
+  testingModel: ApkHoudokuTestingModel;
+  steps: ApkHoudokuIntegrationStep[];
+};
+
+export type ApkHoudokuIntegrationStepExecutionResult = {
+  code: string;
+  method: string;
+  executed: boolean;
+  note: string;
+};
+
+export type ApkHoudokuIntegrationExecutionResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  requestedStepCode: string | undefined;
+  stepResults: ApkHoudokuIntegrationStepExecutionResult[];
+  launchModel: ApkHoudokuLaunchModel;
+};
+
+export type ApkHoudokuNextIntegrationStep = {
+  profile: ApkRuntimeStrictStartupProfile;
+  canRunHoudokuTest: boolean;
+  step: ApkHoudokuIntegrationStep | undefined;
+  reason: string;
+};
+
+export type ApkHoudokuNextIntegrationStepRunResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  nextStep: ApkHoudokuNextIntegrationStep;
+  execution: ApkHoudokuIntegrationExecutionResult;
+};
+
+export type ApkHoudokuIntegrationControllerModel = {
+  profile: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion: string | undefined;
+  plan: ApkHoudokuIntegrationPlan;
+  nextStep: ApkHoudokuNextIntegrationStep;
+  canRunHoudokuTest: boolean;
+  suggestedStepCode: string | undefined;
+};
+
+export type ApkHoudokuIntegrationControllerCycleResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  initialModel: ApkHoudokuIntegrationControllerModel;
+  nextStepRun: ApkHoudokuNextIntegrationStepRunResult;
+  refreshedModel: ApkHoudokuIntegrationControllerModel;
+};
+
+export type ApkHoudokuIntegrationCommandSuggestion = {
+  stepCode: string;
+  method: string;
+  argsJson: string;
+  blocking: boolean;
+  description: string;
+  isNextStep: boolean;
+};
+
+export type ApkHoudokuIntegrationCommandSuggestionsResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion: string | undefined;
+  suggestions: ApkHoudokuIntegrationCommandSuggestion[];
+  nextStep: ApkHoudokuNextIntegrationStep;
+};
+
+export type ApkHoudokuIntegrationCommandExecutionResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  command: ApkHoudokuIntegrationCommandSuggestion | undefined;
+  allowlisted: boolean;
+  parsedArgsValid: boolean;
+  executed: boolean;
+  error: string | undefined;
+  stepExecution: ApkHoudokuIntegrationExecutionResult;
+};
+
+export type ApkHoudokuNextIntegrationCommandExecutionResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  nextStep: ApkHoudokuNextIntegrationStep;
+  command: ApkHoudokuIntegrationCommandSuggestion | undefined;
+  execution: ApkHoudokuIntegrationCommandExecutionResult;
+};
+
+export type ApkHoudokuIntegrationCommandPreflightResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  command: ApkHoudokuIntegrationCommandSuggestion | undefined;
+  normalizedMethod: string | undefined;
+  normalizedStepCode: string | undefined;
+  allowlisted: boolean;
+  parsedArgsValid: boolean;
+  parsedArgs: unknown[] | undefined;
+  error: string | undefined;
+};
+
+export type ApkHoudokuNextIntegrationCommandPreflightResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  nextStep: ApkHoudokuNextIntegrationStep;
+  command: ApkHoudokuIntegrationCommandSuggestion | undefined;
+  preflight: ApkHoudokuIntegrationCommandPreflightResult;
+};
+
+export type ApkHoudokuIntegrationCommandAuditEntry = {
+  command: ApkHoudokuIntegrationCommandSuggestion;
+  preflight: ApkHoudokuIntegrationCommandPreflightResult;
+  dispatchReady: boolean;
+};
+
+export type ApkHoudokuIntegrationCommandAuditBundleResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion: string | undefined;
+  nextStep: ApkHoudokuNextIntegrationStep;
+  entries: ApkHoudokuIntegrationCommandAuditEntry[];
+};
+
+export type ApkHoudokuNextIntegrationCommandAuditBundleResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion: string | undefined;
+  nextStep: ApkHoudokuNextIntegrationStep;
+  command: ApkHoudokuIntegrationCommandSuggestion | undefined;
+  preflight: ApkHoudokuIntegrationCommandPreflightResult;
+  dispatchReady: boolean;
+};
+
+export type ApkHoudokuNextIntegrationCommandTransactionResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion: string | undefined;
+  beforeAudit: ApkHoudokuNextIntegrationCommandAuditBundleResult;
+  executed: boolean;
+  execution: ApkHoudokuNextIntegrationCommandExecutionResult | undefined;
+  afterAudit: ApkHoudokuNextIntegrationCommandAuditBundleResult;
+  skippedReason: string | undefined;
+};
+
+export type ApkHoudokuNextIntegrationCommandTransactionLoopOptions = {
+  profile?: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion?: string;
+  maxRuns?: number;
+};
+
+export type ApkHoudokuNextIntegrationCommandTransactionLoopStopReason =
+  | 'converged'
+  | 'skipped-not-ready'
+  | 'execution-failed'
+  | 'reached-max-runs';
+
+export type ApkHoudokuNextIntegrationCommandTransactionLoopResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion: string | undefined;
+  maxRuns: number;
+  runs: ApkHoudokuNextIntegrationCommandTransactionResult[];
+  finalAudit: ApkHoudokuNextIntegrationCommandAuditBundleResult;
+  stopReason: ApkHoudokuNextIntegrationCommandTransactionLoopStopReason;
+  converged: boolean;
+};
+
+export type ApkHoudokuIntegrationCompletionPolicyOptions = {
+  profile?: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion?: string;
+  maxRuns?: number;
+  requiredStepCodes?: string[];
+  requireDispatchReady?: boolean;
+  requireCanRunHoudokuTest?: boolean;
+  stableNextStepRuns?: number;
+};
+
+export type ApkHoudokuIntegrationCompletionPolicy = {
+  requiredStepCodes: string[];
+  requireDispatchReady: boolean;
+  requireCanRunHoudokuTest: boolean;
+  stableNextStepRuns: number;
+};
+
+export type ApkHoudokuIntegrationCompletionPolicyResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion: string | undefined;
+  policy: ApkHoudokuIntegrationCompletionPolicy;
+  loop: ApkHoudokuNextIntegrationCommandTransactionLoopResult;
+  completed: boolean;
+  reasons: string[];
+  completedRequiredStepCodes: string[];
+  missingRequiredStepCodes: string[];
+  stableNextStepRunsObserved: number;
+};
+
+export type ApkHoudokuIntegrationCompletionPolicyPreset = {
+  profile: ApkRuntimeStrictStartupProfile;
+  maxRuns: number;
+  policy: ApkHoudokuIntegrationCompletionPolicy;
+  notes: string[];
+};
+
+export type ApkHoudokuIntegrationCompletionPolicyPresetRecommendation = {
+  previousRuntimeStateVersion: string | undefined;
+  recommendedProfile: ApkRuntimeStrictStartupProfile;
+  recommendedPreset: ApkHoudokuIntegrationCompletionPolicyPreset;
+  reasons: string[];
+  overrideOptions: ApkHoudokuIntegrationCompletionPolicyOptions;
+  signals: {
+    dispatchReady: boolean;
+    canRunHoudokuTest: boolean;
+    hasBlockingErrors: boolean;
+    recommendedStrictGatePassed: boolean;
+  };
+};
+
+export type ApkHoudokuIntegrationCompletionPolicyPresetRunResult = {
+  recommendation: ApkHoudokuIntegrationCompletionPolicyPresetRecommendation;
+  result: ApkHoudokuIntegrationCompletionPolicyResult;
+};
+
+export type ApkHoudokuIntegrationAutopilotStatus =
+  | 'completed'
+  | 'incomplete'
+  | 'needs-attention';
+
+export type ApkHoudokuIntegrationAutopilotSessionResult = {
+  previousRuntimeStateVersion: string | undefined;
+  recommendation: ApkHoudokuIntegrationCompletionPolicyPresetRecommendation;
+  run: ApkHoudokuIntegrationCompletionPolicyPresetRunResult;
+  status: ApkHoudokuIntegrationAutopilotStatus;
+  summary: string;
+  suggestedNextAction: string;
+};
+
+export type ApkHoudokuIntegrationAutopilotQuickStatus = {
+  previousRuntimeStateVersion: string | undefined;
+  runtimeStateVersion: string;
+  changed: boolean;
+  runtimeQuickStatus: ApkRuntimeQuickStatus;
+  status: ApkHoudokuIntegrationAutopilotStatus;
+  recommendedProfile: ApkRuntimeStrictStartupProfile;
+  suggestedNextAction: string;
+  reason: string;
+};
+
+export type ApkHoudokuTestingEntryModel = {
+  previousRuntimeStateVersion: string | undefined;
+  runtimeDigest: ApkRuntimeDigest;
+  runtimeQuickStatus: ApkRuntimeQuickStatus;
+  autopilotQuickStatus: ApkHoudokuTestingAutopilotQuickStatus;
+  testingPreset: ApkHoudokuTestingPreset;
+  completionRecommendation: ApkHoudokuTestingCompletionPolicyPresetRecommendation;
+  canStartInteractiveTest: boolean;
+  suggestedPrimaryAction: string;
+};
+
+export type ApkHoudokuTestingPrimaryActionRunResult = {
+  previousRuntimeStateVersion: string | undefined;
+  action: string;
+  performed: boolean;
+  reason: string;
+  entryModel: ApkHoudokuTestingEntryModel;
+  testReady: ApkHoudokuTestReadyResult | undefined;
+  remediationPlan: ApkStartupRemediationPlan | undefined;
+};
+
+export type ApkHoudokuTestingSessionRunResult = {
+  previousRuntimeStateVersion: string | undefined;
+  beforeEntryModel: ApkHoudokuTestingEntryModel;
+  primaryActionRun: ApkHoudokuTestingPrimaryActionRunResult;
+  afterEntryModel: ApkHoudokuTestingEntryModel;
+  completed: boolean;
+  reason: string;
+};
+
+export type ApkHoudokuTestingSessionLoopOptions = {
+  previousRuntimeStateVersion?: string;
+  maxRuns?: number;
+  stableCompletionRuns?: number;
+};
+
+export type ApkHoudokuTestingSessionLoopStopReason =
+  | 'completed'
+  | 'max-runs';
+
+export type ApkHoudokuTestingSessionLoopResult = {
+  previousRuntimeStateVersion: string | undefined;
+  maxRuns: number;
+  stableCompletionRuns: number;
+  runs: ApkHoudokuTestingSessionRunResult[];
+  finalSession: ApkHoudokuTestingSessionRunResult;
+  completed: boolean;
+  completedRunCount: number;
+  stopReason: ApkHoudokuTestingSessionLoopStopReason;
+  reason: string;
+};
+
+export type ApkHoudokuTestingControllerModelOptions = {
+  previousRuntimeStateVersion?: string;
+  maxRuns?: number;
+  stableCompletionRuns?: number;
+};
+
+export type ApkHoudokuTestingControllerStatus = 'ready' | 'needs-action';
+
+export type ApkHoudokuTestingControllerModel = {
+  previousRuntimeStateVersion: string | undefined;
+  entryModel: ApkHoudokuTestingEntryModel;
+  canRunInteractiveTest: boolean;
+  suggestedPrimaryAction: string;
+  suggestedLoopOptions: {
+    maxRuns: number;
+    stableCompletionRuns: number;
+  };
+  status: ApkHoudokuTestingControllerStatus;
+  reason: string;
+};
+
+export type ApkHoudokuTestingControllerCycleResult = {
+  previousRuntimeStateVersion: string | undefined;
+  initialModel: ApkHoudokuTestingControllerModel;
+  loop: ApkHoudokuTestingSessionLoopResult;
+  refreshedModel: ApkHoudokuTestingControllerModel;
+  completed: boolean;
+  suggestedNextAction: string;
+  reason: string;
+};
+
+export type ApkHoudokuTestingAutopilotOptions = {
+  previousRuntimeStateVersion?: string;
+  maxRuns?: number;
+  stableCompletionRuns?: number;
+};
+
+export type ApkHoudokuTestingAutopilotStatus = 'completed' | 'incomplete';
+
+export type ApkHoudokuTestingAutopilotResult = {
+  previousRuntimeStateVersion: string | undefined;
+  controllerModel: ApkHoudokuTestingControllerModel;
+  controllerCycle: ApkHoudokuTestingControllerCycleResult;
+  launchModel: ApkHoudokuLaunchModel;
+  status: ApkHoudokuTestingAutopilotStatus;
+  completed: boolean;
+  suggestedNextAction: string;
+  reason: string;
+};
+
+export type ApkHoudokuTestingCommandSuggestion = {
+  stepCode: string;
+  method: string;
+  argsJson: string;
+  description: string;
+  isNextStep: boolean;
+};
+
+export type ApkHoudokuTestingCommandSuggestionsResult = {
+  previousRuntimeStateVersion: string | undefined;
+  suggestions: ApkHoudokuTestingCommandSuggestion[];
+  controllerModel: ApkHoudokuTestingControllerModel;
+};
+
+export type ApkHoudokuTestingCommandPreflightResult = {
+  previousRuntimeStateVersion: string | undefined;
+  command: ApkHoudokuTestingCommandSuggestion | undefined;
+  normalizedMethod: string | undefined;
+  normalizedStepCode: string | undefined;
+  allowlisted: boolean;
+  parsedArgsValid: boolean;
+  parsedArgs: unknown[] | undefined;
+  error: string | undefined;
+};
+
+export type ApkHoudokuTestingCommandExecutionResult = {
+  previousRuntimeStateVersion: string | undefined;
+  command: ApkHoudokuTestingCommandSuggestion | undefined;
+  allowlisted: boolean;
+  parsedArgsValid: boolean;
+  executed: boolean;
+  error: string | undefined;
+  autopilot: ApkHoudokuTestingAutopilotResult;
+};
+
+export type ApkHoudokuNextTestingCommandExecutionResult = {
+  previousRuntimeStateVersion: string | undefined;
+  command: ApkHoudokuTestingCommandSuggestion | undefined;
+  execution: ApkHoudokuTestingCommandExecutionResult;
+};
+
+export type ApkHoudokuNextTestingCommandPreflightResult = {
+  previousRuntimeStateVersion: string | undefined;
+  command: ApkHoudokuTestingCommandSuggestion | undefined;
+  preflight: ApkHoudokuTestingCommandPreflightResult;
+};
+
+export type ApkHoudokuTestingCommandAuditEntry = {
+  command: ApkHoudokuTestingCommandSuggestion;
+  preflight: ApkHoudokuTestingCommandPreflightResult;
+  dispatchReady: boolean;
+};
+
+export type ApkHoudokuTestingCommandAuditBundleResult = {
+  previousRuntimeStateVersion: string | undefined;
+  entries: ApkHoudokuTestingCommandAuditEntry[];
+};
+
+export type ApkHoudokuNextTestingCommandAuditBundleResult = {
+  previousRuntimeStateVersion: string | undefined;
+  command: ApkHoudokuTestingCommandSuggestion | undefined;
+  preflight: ApkHoudokuTestingCommandPreflightResult;
+  dispatchReady: boolean;
+};
+
+export type ApkHoudokuNextTestingCommandTransactionResult = {
+  previousRuntimeStateVersion: string | undefined;
+  beforeAudit: ApkHoudokuNextTestingCommandAuditBundleResult;
+  executed: boolean;
+  execution: ApkHoudokuNextTestingCommandExecutionResult | undefined;
+  afterAudit: ApkHoudokuNextTestingCommandAuditBundleResult;
+  skippedReason: string | undefined;
+};
+
+export type ApkHoudokuNextTestingCommandTransactionLoopOptions = {
+  previousRuntimeStateVersion?: string;
+  maxRuns?: number;
+};
+
+export type ApkHoudokuNextTestingCommandTransactionLoopStopReason =
+  | 'converged'
+  | 'skipped-not-ready'
+  | 'execution-failed'
+  | 'reached-max-runs';
+
+export type ApkHoudokuNextTestingCommandTransactionLoopResult = {
+  previousRuntimeStateVersion: string | undefined;
+  maxRuns: number;
+  runs: ApkHoudokuNextTestingCommandTransactionResult[];
+  finalAudit: ApkHoudokuNextTestingCommandAuditBundleResult;
+  stopReason: ApkHoudokuNextTestingCommandTransactionLoopStopReason;
+  converged: boolean;
+};
+
+export type ApkHoudokuTestingCompletionPolicyOptions = {
+  profile?: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion?: string;
+  maxRuns?: number;
+  requiredStepCodes?: string[];
+  requireDispatchReady?: boolean;
+  requireInteractiveTestReady?: boolean;
+  stableNextStepRuns?: number;
+};
+
+export type ApkHoudokuTestingCompletionPolicy = {
+  requiredStepCodes: string[];
+  requireDispatchReady: boolean;
+  requireInteractiveTestReady: boolean;
+  stableNextStepRuns: number;
+};
+
+export type ApkHoudokuTestingCompletionPolicyResult = {
+  profile: ApkRuntimeStrictStartupProfile;
+  previousRuntimeStateVersion: string | undefined;
+  policy: ApkHoudokuTestingCompletionPolicy;
+  loop: ApkHoudokuNextTestingCommandTransactionLoopResult;
+  finalControllerModel: ApkHoudokuTestingControllerModel;
+  completed: boolean;
+  reasons: string[];
+  completedRequiredStepCodes: string[];
+  missingRequiredStepCodes: string[];
+  stableNextStepRunsObserved: number;
+};
+
+export type ApkHoudokuTestingCompletionPolicyPreset = {
+  profile: ApkRuntimeStrictStartupProfile;
+  maxRuns: number;
+  policy: ApkHoudokuTestingCompletionPolicy;
+  notes: string[];
+};
+
+export type ApkHoudokuTestingCompletionPolicyPresetRecommendation = {
+  previousRuntimeStateVersion: string | undefined;
+  recommendedProfile: ApkRuntimeStrictStartupProfile;
+  recommendedPreset: ApkHoudokuTestingCompletionPolicyPreset;
+  reasons: string[];
+  overrideOptions: ApkHoudokuTestingCompletionPolicyOptions;
+  signals: {
+    dispatchReady: boolean;
+    canRunInteractiveTest: boolean;
+    hasBlockingErrors: boolean;
+    recommendedStrictGatePassed: boolean;
+  };
+};
+
+export type ApkHoudokuTestingCompletionPolicyPresetRunResult = {
+  recommendation: ApkHoudokuTestingCompletionPolicyPresetRecommendation;
+  result: ApkHoudokuTestingCompletionPolicyResult;
+};
+
+export type ApkHoudokuTestingAutopilotSessionResult = {
+  previousRuntimeStateVersion: string | undefined;
+  recommendation: ApkHoudokuTestingCompletionPolicyPresetRecommendation;
+  run: ApkHoudokuTestingCompletionPolicyPresetRunResult;
+  status: ApkHoudokuTestingAutopilotStatus;
+  summary: string;
+  suggestedNextAction: string;
+};
+
+export type ApkHoudokuTestingAutopilotQuickStatus = {
+  previousRuntimeStateVersion: string | undefined;
+  runtimeStateVersion: string;
+  changed: boolean;
+  runtimeQuickStatus: ApkRuntimeQuickStatus;
+  status: ApkHoudokuTestingAutopilotStatus;
+  recommendedProfile: ApkRuntimeStrictStartupProfile;
+  suggestedNextAction: string;
+  reason: string;
+};
+
+export type ApkHoudokuTestingExecutionSummary = {
+  previousRuntimeStateVersion: string | undefined;
+  runtimeStateVersion: string;
+  changed: boolean;
+  status: 'ready' | 'needs-action' | 'blocked';
+  canStartInteractiveTest: boolean;
+  dispatchReady: boolean;
+  suggestedNextAction: string;
+  reason: string;
+  autopilotQuickStatus: ApkHoudokuTestingAutopilotQuickStatus;
+  completionRecommendation: ApkHoudokuTestingCompletionPolicyPresetRecommendation;
+};
+
+export type ApkHoudokuTestingQuickStartResult = {
+  previousRuntimeStateVersion: string | undefined;
+  beforeSummary: ApkHoudokuTestingExecutionSummary;
+  actionRun: ApkHoudokuTestingPrimaryActionRunResult | undefined;
+  afterSummary: ApkHoudokuTestingExecutionSummary;
+  ready: boolean;
+  suggestedNextAction: string;
+  reason: string;
+};
+
+export type ApkHoudokuTestingFunctionalRunResult = {
+  previousRuntimeStateVersion: string | undefined;
+  summary: ApkHoudokuTestingExecutionSummary;
+  quickStart: ApkHoudokuTestingQuickStartResult;
+  launchModel: ApkHoudokuLaunchModel;
+  readyForInteractiveTest: boolean;
+  suggestedNextAction: string;
+  reason: string;
+};
+
+export type ApkHoudokuTestingDispatchModel = {
+  previousRuntimeStateVersion: string | undefined;
+  functionalRun: ApkHoudokuTestingFunctionalRunResult;
+  nextCommand: ApkHoudokuTestingCommandSuggestion | undefined;
+  dispatchMethod: string | undefined;
+  dispatchArgsJson: string | undefined;
+  canDispatchCommand: boolean;
+  canStartInteractiveTest: boolean;
+  suggestedClientAction: 'start-houdoku-test' | 'dispatch-command' | 'wait';
+  reason: string;
+};

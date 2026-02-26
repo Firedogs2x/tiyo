@@ -181,6 +181,248 @@ Run `nx build core` to build the library.
   - Returns convergence details:
     `{ profile, maxRuns, runs, finalRun, stopReason, converged }`.
 
+- `getApkStartupExecutionSummary(profile?)`
+  - Returns a compact one-call startup verification summary for Houdoku launch checks.
+  - Includes current `readyStatus`, recommended strict-gate pass/fail, reasons, and key counts.
+  - Use this method for lightweight pre-launch status surfaces without full orchestration payloads.
+
+- `runApkHoudokuTestReady(options?)`
+  - Executes bounded remediation-until-stable and returns final Houdoku test readiness.
+  - Combines remediation loop output with startup execution summary in one response.
+  - Response shape:
+    `{ profile, maxRemediationRuns, usedOverrides, remediation, summary, readyForHoudokuTest, reasons }`.
+
+- `getApkHoudokuLaunchModel(profile?, previousRuntimeStateVersion?)`
+  - Returns a consolidated non-destructive launch model for Houdoku integration UI.
+  - Combines `getApkUiModel`, startup summary, strict recommendation, and remediation plan.
+  - Response shape:
+    `{ profile, uiModel, startupSummary, recommendedStrictGate, remediationPlan, canRunHoudokuTest, blockerReasons }`.
+
+- `getApkHoudokuLaunchModelWithOverrides(options?)`
+  - Returns the same launch model using optional strict-gate overrides.
+  - Useful when operator-approved gate relaxations are needed for targeted Houdoku testing.
+  - Includes `usedOverrides` in the response for traceability.
+
+- `getApkHoudokuTestingPreset(profile?)`
+  - Returns backend-defined override presets for Houdoku-focused testing flows.
+  - Designed to keep testing non-destructive by default while still producing deterministic readiness checks.
+
+- `getApkHoudokuTestingModel(profile?, previousRuntimeStateVersion?)`
+  - Returns a composed testing payload in one call:
+    `{ profile, preset, launchModel, testReady }`.
+  - Combines recommended testing preset, override-aware launch model, and one-call test-ready execution.
+
+- `getApkHoudokuTestingModelWithOptions(options?)`
+  - Returns the same composed testing payload with explicit options.
+  - Supports custom `overrides` and `maxRemediationRuns` while preserving method-based orchestration.
+
+- `getApkHoudokuIntegrationPlan(profile?, previousRuntimeStateVersion?)`
+  - Returns backend-generated Houdoku integration steps with method names and execution intent.
+  - Includes `{ profile, testingModel, steps }` where steps can be used as a direct UI/IPC wiring checklist.
+
+- `runApkHoudokuIntegrationStep(profile?, stepCode?, previousRuntimeStateVersion?)`
+  - Executes a single integration step by code and returns refreshed launch model.
+  - Returns `{ profile, requestedStepCode, stepResults, launchModel }`.
+
+- `runApkHoudokuIntegrationPlan(profile?, previousRuntimeStateVersion?)`
+  - Executes all generated integration steps in sequence and returns refreshed launch model.
+  - Uses the same method mappings as `getApkHoudokuIntegrationPlan` for deterministic orchestration.
+
+- `getApkNextHoudokuIntegrationStep(profile?, previousRuntimeStateVersion?)`
+  - Returns backend-selected next step for Houdoku integration flow.
+  - Uses current launch gate state to pick the highest-value next action and includes rationale.
+
+- `runApkNextHoudokuIntegrationStep(profile?, previousRuntimeStateVersion?)`
+  - Executes the backend-selected next integration step in one call.
+  - Returns `{ profile, nextStep, execution }` for direct UI/IPC orchestration.
+
+- `getApkHoudokuIntegrationControllerModel(profile?, previousRuntimeStateVersion?)`
+  - Returns a compact controller payload for UI state orchestration.
+  - Includes `{ profile, previousRuntimeStateVersion, plan, nextStep, canRunHoudokuTest, suggestedStepCode }`.
+
+- `runApkHoudokuIntegrationControllerCycle(profile?, previousRuntimeStateVersion?)`
+  - Executes one controller cycle: compute initial model, run next step, then return refreshed model.
+  - Returns `{ profile, initialModel, nextStepRun, refreshedModel }`.
+
+- `getApkHoudokuIntegrationCommandSuggestions(profile?, previousRuntimeStateVersion?)`
+  - Returns IPC-ready command suggestions for every integration step.
+  - Each suggestion includes `{ stepCode, method, argsJson, blocking, description, isNextStep }` plus `nextStep` context.
+
+- `preflightApkHoudokuIntegrationCommandSuggestion(command?, profile?, previousRuntimeStateVersion?)`
+  - Validates one command suggestion without executing it.
+  - Returns normalized method/step, allowlist status, parsed-args validity, and parsed argument payload.
+
+- `preflightApkHoudokuNextIntegrationCommandSuggestion(profile?, previousRuntimeStateVersion?)`
+  - Preflights the backend-selected next command suggestion in one call.
+  - Returns `{ profile, nextStep, command, preflight }`.
+
+- `getApkHoudokuIntegrationCommandAuditBundle(profile?, previousRuntimeStateVersion?)`
+  - Returns per-command audit entries for all integration suggestions.
+  - Each entry includes `{ command, preflight, dispatchReady }` for direct UI rendering.
+
+- `getApkHoudokuNextIntegrationCommandAuditBundle(profile?, previousRuntimeStateVersion?)`
+  - Returns an audit view for the backend-selected next command.
+  - Includes `{ nextStep, command, preflight, dispatchReady }`.
+
+- `runApkHoudokuNextIntegrationCommandTransaction(profile?, previousRuntimeStateVersion?)`
+  - Runs one transactional next-command cycle with before/after audit snapshots.
+  - Executes only when `dispatchReady` is true and returns `{ beforeAudit, execution, afterAudit, executed, skippedReason }`.
+
+- `runApkHoudokuNextIntegrationCommandTransactions(options?)`
+  - Runs bounded next-command transactions until convergence, failure/not-ready stop, or `maxRuns` is reached.
+  - Returns `{ runs, finalAudit, stopReason, converged }` with full per-run trace.
+
+- `runApkHoudokuNextIntegrationCommandTransactionsWithCompletionPolicy(options?)`
+  - Runs bounded transactions and evaluates deterministic completion criteria.
+  - Supports policy controls for `requiredStepCodes`, final dispatch/test readiness, and minimum stable next-step runs.
+  - Returns `{ completed, reasons, policy, loop, completedRequiredStepCodes, missingRequiredStepCodes }`.
+
+- `getApkHoudokuIntegrationCompletionPolicyPreset(profile?)`
+  - Returns a profile-based completion preset (`dev`, `test`, `prod`) with `policy`, `maxRuns`, and notes.
+  - Designed to remove hardcoded policy values from UI/IPC layers.
+
+- `runApkHoudokuIntegrationCompletionPolicyPreset(profile?, previousRuntimeStateVersion?)`
+  - Executes completion-policy evaluation using the selected preset in one call.
+  - Returns the same completion result payload as `runApkHoudokuNextIntegrationCommandTransactionsWithCompletionPolicy`.
+
+- `getApkHoudokuIntegrationCompletionPolicyPresetRecommendation(previousRuntimeStateVersion?)`
+  - Recommends `dev`/`test`/`prod` preset from current runtime and audit signals.
+  - Returns rationale, selected preset, and ready-to-run completion-policy override options.
+
+- `runApkHoudokuIntegrationCompletionPolicyPresetRecommendation(previousRuntimeStateVersion?)`
+  - Resolves recommended preset and executes completion-policy evaluation in one call.
+  - Returns `{ recommendation, result }`.
+
+- `runApkHoudokuIntegrationAutopilotSession(previousRuntimeStateVersion?)`
+  - Runs recommendation and preset execution in one call and returns a compact status model.
+  - Returns `{ recommendation, run, status, summary, suggestedNextAction }` for direct status-panel rendering.
+
+- `getApkHoudokuIntegrationAutopilotQuickStatus(previousRuntimeStateVersion?)`
+  - Returns digest-aware lightweight autopilot status for polling without running full transaction loops.
+  - Includes `{ changed, runtimeQuickStatus, status, recommendedProfile, suggestedNextAction, reason }`.
+
+- `getApkHoudokuTestingEntryModel(previousRuntimeStateVersion?)`
+  - Returns a one-call entry payload for Houdoku testing screens.
+  - Includes runtime digest/quick status, autopilot quick status, test preset, completion recommendation, and primary action hints.
+
+- `runApkHoudokuTestingPrimaryAction(previousRuntimeStateVersion?)`
+  - Executes the testing entry model’s `suggestedPrimaryAction` in one backend call.
+  - Returns `{ action, performed, reason, entryModel, testReady?, remediationPlan? }`.
+
+- `runApkHoudokuTestingSession(previousRuntimeStateVersion?)`
+  - Runs one testing session step in a single call.
+  - Returns `{ beforeEntryModel, primaryActionRun, afterEntryModel, completed, reason }`.
+
+- `runApkHoudokuTestingSessionLoop(options?)`
+  - Runs bounded testing-session steps until stable completion or `maxRuns` is reached.
+  - Returns `{ maxRuns, stableCompletionRuns, runs, finalSession, completed, completedRunCount, stopReason, reason }`.
+
+- `getApkHoudokuTestingControllerModel(options?)`
+  - Returns a polling-friendly controller model for test orchestration.
+  - Includes entry state, suggested primary action, normalized loop options, and readiness status/reason.
+
+- `runApkHoudokuTestingControllerCycle(options?)`
+  - Runs one controller cycle: compute controller model, execute bounded session loop, then return refreshed model.
+  - Returns `{ initialModel, loop, refreshedModel, completed, suggestedNextAction, reason }`.
+
+- `runApkHoudokuTestingAutopilot(options?)`
+  - Runs one high-level testing autopilot pass in a single backend call.
+  - Returns `{ controllerModel, controllerCycle, launchModel, status, completed, suggestedNextAction, reason }`.
+
+- `getApkHoudokuTestingCommandSuggestions(previousRuntimeStateVersion?)`
+  - Returns IPC-ready command suggestions for testing orchestration methods.
+  - Includes `{ suggestions, controllerModel }` where each suggestion provides
+    `{ stepCode, method, argsJson, description, isNextStep }`.
+
+- `preflightApkHoudokuTestingCommandSuggestion(command?, previousRuntimeStateVersion?)`
+  - Validates one testing command suggestion without executing it.
+  - Returns normalized method/step, allowlist status, parsed-args validity, and parsed argument payload.
+
+- `runApkHoudokuTestingCommandSuggestion(command?, previousRuntimeStateVersion?)`
+  - Executes one testing command suggestion through an allowlisted backend dispatcher.
+  - Returns `{ allowlisted, parsedArgsValid, executed, error, autopilot }` with refreshed autopilot context.
+
+- `runApkHoudokuNextTestingCommandSuggestion(previousRuntimeStateVersion?)`
+  - Looks up the backend-selected next testing command suggestion and executes it in one call.
+  - Returns `{ command, execution }` for direct UI/IPC orchestration.
+
+- `preflightApkHoudokuNextTestingCommandSuggestion(previousRuntimeStateVersion?)`
+  - Preflights the backend-selected next testing command suggestion in one call.
+  - Returns `{ command, preflight }`.
+
+- `getApkHoudokuTestingCommandAuditBundle(previousRuntimeStateVersion?)`
+  - Returns per-command audit entries for all testing command suggestions.
+  - Each entry includes `{ command, preflight, dispatchReady }`.
+
+- `getApkHoudokuNextTestingCommandAuditBundle(previousRuntimeStateVersion?)`
+  - Returns an audit view for the backend-selected next testing command.
+  - Includes `{ command, preflight, dispatchReady }`.
+
+- `runApkHoudokuNextTestingCommandTransaction(previousRuntimeStateVersion?)`
+  - Runs one transactional next-testing-command cycle with before/after audit snapshots.
+  - Executes only when `dispatchReady` is true and returns
+    `{ beforeAudit, execution, afterAudit, executed, skippedReason }`.
+
+- `runApkHoudokuNextTestingCommandTransactions(options?)`
+  - Runs bounded next-testing-command transactions until convergence, failure/not-ready stop,
+    or `maxRuns` is reached.
+  - Returns `{ runs, finalAudit, stopReason, converged }`.
+
+- `runApkHoudokuNextTestingCommandTransactionsWithCompletionPolicy(options?)`
+  - Runs bounded next-testing-command transactions and evaluates deterministic completion criteria.
+  - Supports policy controls for required testing step codes, final dispatch readiness,
+    interactive-test readiness, and stable next-step runs.
+  - Returns `{ completed, reasons, policy, loop, finalControllerModel, completedRequiredStepCodes, missingRequiredStepCodes }`.
+
+- `getApkHoudokuTestingCompletionPolicyPreset(profile?)`
+  - Returns a profile-based testing completion preset (`dev`, `test`, `prod`) with
+    `policy`, `maxRuns`, and notes.
+
+- `runApkHoudokuTestingCompletionPolicyPreset(profile?, previousRuntimeStateVersion?)`
+  - Executes testing completion-policy evaluation using the selected preset in one call.
+
+- `getApkHoudokuTestingCompletionPolicyPresetRecommendation(previousRuntimeStateVersion?)`
+  - Recommends `dev`/`test`/`prod` testing preset from runtime, testing-dispatch, and strict-gate signals.
+  - Returns rationale, selected preset, and ready-to-run override options.
+
+- `runApkHoudokuTestingCompletionPolicyPresetRecommendation(previousRuntimeStateVersion?)`
+  - Resolves recommended testing preset and executes completion-policy evaluation in one call.
+  - Returns `{ recommendation, result }`.
+
+- `runApkHoudokuTestingAutopilotSession(previousRuntimeStateVersion?)`
+  - Runs testing preset recommendation and completion-policy evaluation in one call.
+  - Returns `{ recommendation, run, status, summary, suggestedNextAction }`.
+
+- `getApkHoudokuTestingAutopilotQuickStatus(previousRuntimeStateVersion?)`
+  - Returns digest-aware lightweight testing autopilot status for polling surfaces.
+  - Includes `{ changed, runtimeQuickStatus, status, recommendedProfile, suggestedNextAction, reason }`.
+
+- `getApkHoudokuTestingExecutionSummary(previousRuntimeStateVersion?)`
+  - Returns a compact one-call testing readiness summary for production UI polling.
+  - Includes `{ status, canStartInteractiveTest, dispatchReady, suggestedNextAction, reason }`
+    plus `autopilotQuickStatus` and `completionRecommendation` context.
+
+- `runApkHoudokuTestingQuickStart(previousRuntimeStateVersion?)`
+  - Runs a minimal one-pass startup action toward interactive testing readiness.
+  - Returns `{ beforeSummary, actionRun?, afterSummary, ready, suggestedNextAction, reason }`.
+
+- `runApkHoudokuTestingFunctionalRun(previousRuntimeStateVersion?)`
+  - Runs one backend-owned functional testing pass: summary -> quick-start -> launch model.
+  - Returns `{ summary, quickStart, launchModel, readyForInteractiveTest, suggestedNextAction, reason }`.
+
+- `getApkHoudokuTestingDispatchModel(previousRuntimeStateVersion?)`
+  - Returns a direct client-dispatch payload for runtime UI/IPC.
+  - Includes `{ suggestedClientAction, dispatchMethod?, dispatchArgsJson?, canStartInteractiveTest, canDispatchCommand }`
+    plus functional run context.
+
+- `runApkHoudokuIntegrationCommandSuggestion(command?, profile?, previousRuntimeStateVersion?)`
+  - Executes one command suggestion through an allowlisted backend dispatcher.
+  - Validates allowlisting and `argsJson` shape before dispatch and returns execution metadata.
+
+- `runApkHoudokuNextIntegrationCommandSuggestion(profile?, previousRuntimeStateVersion?)`
+  - Looks up the backend-selected next command suggestion and executes it in one call.
+  - Returns `{ profile, nextStep, command, execution }`.
+
 - `getApkRuntimeActionHints()`
   - Returns action-oriented remediation hints for current runtime issues.
   - Hint codes cover directory setup, source selection, strict-mode recovery, and repair feedback.

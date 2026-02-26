@@ -28,6 +28,70 @@ import {
   ApkStartupRemediationPlan,
   ApkStartupRemediationOverrides,
   ApkStartupRemediationRunResult,
+  ApkStartupExecutionSummary,
+  ApkHoudokuTestReadyOptions,
+  ApkHoudokuTestReadyResult,
+  ApkHoudokuLaunchModel,
+  ApkHoudokuLaunchModelOptions,
+  ApkHoudokuTestingPreset,
+  ApkHoudokuTestingModel,
+  ApkHoudokuTestingModelOptions,
+  ApkHoudokuIntegrationPlan,
+  ApkHoudokuIntegrationExecutionResult,
+  ApkHoudokuNextIntegrationStep,
+  ApkHoudokuNextIntegrationStepRunResult,
+  ApkHoudokuIntegrationControllerModel,
+  ApkHoudokuIntegrationControllerCycleResult,
+  ApkHoudokuIntegrationCommandSuggestionsResult,
+  ApkHoudokuIntegrationCommandSuggestion,
+  ApkHoudokuIntegrationCommandExecutionResult,
+  ApkHoudokuNextIntegrationCommandExecutionResult,
+  ApkHoudokuIntegrationCommandPreflightResult,
+  ApkHoudokuNextIntegrationCommandPreflightResult,
+  ApkHoudokuIntegrationCommandAuditBundleResult,
+  ApkHoudokuNextIntegrationCommandAuditBundleResult,
+  ApkHoudokuNextIntegrationCommandTransactionResult,
+  ApkHoudokuNextIntegrationCommandTransactionLoopOptions,
+  ApkHoudokuNextIntegrationCommandTransactionLoopResult,
+  ApkHoudokuIntegrationCompletionPolicyOptions,
+  ApkHoudokuIntegrationCompletionPolicyResult,
+  ApkHoudokuIntegrationCompletionPolicyPreset,
+  ApkHoudokuIntegrationCompletionPolicyPresetRecommendation,
+  ApkHoudokuIntegrationCompletionPolicyPresetRunResult,
+  ApkHoudokuIntegrationAutopilotSessionResult,
+  ApkHoudokuIntegrationAutopilotQuickStatus,
+  ApkHoudokuTestingEntryModel,
+  ApkHoudokuTestingPrimaryActionRunResult,
+  ApkHoudokuTestingSessionRunResult,
+  ApkHoudokuTestingSessionLoopOptions,
+  ApkHoudokuTestingSessionLoopResult,
+  ApkHoudokuTestingControllerModelOptions,
+  ApkHoudokuTestingControllerModel,
+  ApkHoudokuTestingControllerCycleResult,
+  ApkHoudokuTestingAutopilotOptions,
+  ApkHoudokuTestingAutopilotResult,
+  ApkHoudokuTestingCommandSuggestion,
+  ApkHoudokuTestingCommandSuggestionsResult,
+  ApkHoudokuTestingCommandPreflightResult,
+  ApkHoudokuTestingCommandExecutionResult,
+  ApkHoudokuNextTestingCommandExecutionResult,
+  ApkHoudokuNextTestingCommandPreflightResult,
+  ApkHoudokuTestingCommandAuditBundleResult,
+  ApkHoudokuNextTestingCommandAuditBundleResult,
+  ApkHoudokuNextTestingCommandTransactionResult,
+  ApkHoudokuNextTestingCommandTransactionLoopOptions,
+  ApkHoudokuNextTestingCommandTransactionLoopResult,
+  ApkHoudokuTestingCompletionPolicyOptions,
+  ApkHoudokuTestingCompletionPolicyResult,
+  ApkHoudokuTestingCompletionPolicyPreset,
+  ApkHoudokuTestingCompletionPolicyPresetRecommendation,
+  ApkHoudokuTestingCompletionPolicyPresetRunResult,
+  ApkHoudokuTestingAutopilotSessionResult,
+  ApkHoudokuTestingAutopilotQuickStatus,
+  ApkHoudokuTestingExecutionSummary,
+  ApkHoudokuTestingQuickStartResult,
+  ApkHoudokuTestingFunctionalRunResult,
+  ApkHoudokuTestingDispatchModel,
   ApkStartupRemediationUntilStableOptions,
   ApkStartupRemediationUntilStableResult,
   ApkHoudokuReadyStatus,
@@ -378,6 +442,201 @@ export interface TiyoClientInterface {
   runApkStartupRemediationUntilStable?: (
     options?: ApkStartupRemediationUntilStableOptions
   ) => ApkStartupRemediationUntilStableResult;
+  getApkStartupExecutionSummary?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkStartupExecutionSummary;
+  runApkHoudokuTestReady?: (
+    options?: ApkHoudokuTestReadyOptions
+  ) => ApkHoudokuTestReadyResult;
+  getApkHoudokuLaunchModel?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuLaunchModel;
+  getApkHoudokuLaunchModelWithOverrides?: (
+    options?: ApkHoudokuLaunchModelOptions
+  ) => ApkHoudokuLaunchModel;
+  getApkHoudokuTestingPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkHoudokuTestingPreset;
+  getApkHoudokuTestingModel?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingModel;
+  getApkHoudokuTestingModelWithOptions?: (
+    options?: ApkHoudokuTestingModelOptions
+  ) => ApkHoudokuTestingModel;
+  getApkHoudokuIntegrationPlan?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationPlan;
+  runApkHoudokuIntegrationStep?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    stepCode?: string,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationExecutionResult;
+  runApkHoudokuIntegrationPlan?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationExecutionResult;
+  getApkNextHoudokuIntegrationStep?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationStep;
+  runApkNextHoudokuIntegrationStep?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationStepRunResult;
+  getApkHoudokuIntegrationControllerModel?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationControllerModel;
+  runApkHoudokuIntegrationControllerCycle?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationControllerCycleResult;
+  getApkHoudokuIntegrationCommandSuggestions?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCommandSuggestionsResult;
+  preflightApkHoudokuIntegrationCommandSuggestion?: (
+    command?: ApkHoudokuIntegrationCommandSuggestion,
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCommandPreflightResult;
+  preflightApkHoudokuNextIntegrationCommandSuggestion?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationCommandPreflightResult;
+  getApkHoudokuIntegrationCommandAuditBundle?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCommandAuditBundleResult;
+  getApkHoudokuNextIntegrationCommandAuditBundle?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationCommandAuditBundleResult;
+  runApkHoudokuNextIntegrationCommandTransaction?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationCommandTransactionResult;
+  runApkHoudokuNextIntegrationCommandTransactions?: (
+    options?: ApkHoudokuNextIntegrationCommandTransactionLoopOptions
+  ) => ApkHoudokuNextIntegrationCommandTransactionLoopResult;
+  runApkHoudokuNextIntegrationCommandTransactionsWithCompletionPolicy?: (
+    options?: ApkHoudokuIntegrationCompletionPolicyOptions
+  ) => ApkHoudokuIntegrationCompletionPolicyResult;
+  getApkHoudokuIntegrationCompletionPolicyPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkHoudokuIntegrationCompletionPolicyPreset;
+  runApkHoudokuIntegrationCompletionPolicyPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCompletionPolicyResult;
+  getApkHoudokuIntegrationCompletionPolicyPresetRecommendation?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCompletionPolicyPresetRecommendation;
+  runApkHoudokuIntegrationCompletionPolicyPresetRecommendation?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCompletionPolicyPresetRunResult;
+  runApkHoudokuIntegrationAutopilotSession?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationAutopilotSessionResult;
+  getApkHoudokuIntegrationAutopilotQuickStatus?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationAutopilotQuickStatus;
+  getApkHoudokuTestingEntryModel?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingEntryModel;
+  runApkHoudokuTestingPrimaryAction?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingPrimaryActionRunResult;
+  runApkHoudokuTestingSession?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingSessionRunResult;
+  runApkHoudokuTestingSessionLoop?: (
+    options?: ApkHoudokuTestingSessionLoopOptions
+  ) => ApkHoudokuTestingSessionLoopResult;
+  getApkHoudokuTestingControllerModel?: (
+    options?: ApkHoudokuTestingControllerModelOptions
+  ) => ApkHoudokuTestingControllerModel;
+  runApkHoudokuTestingControllerCycle?: (
+    options?: ApkHoudokuTestingControllerModelOptions
+  ) => ApkHoudokuTestingControllerCycleResult;
+  runApkHoudokuTestingAutopilot?: (
+    options?: ApkHoudokuTestingAutopilotOptions
+  ) => ApkHoudokuTestingAutopilotResult;
+  getApkHoudokuTestingCommandSuggestions?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCommandSuggestionsResult;
+  preflightApkHoudokuTestingCommandSuggestion?: (
+    command?: ApkHoudokuTestingCommandSuggestion,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCommandPreflightResult;
+  runApkHoudokuTestingCommandSuggestion?: (
+    command?: ApkHoudokuTestingCommandSuggestion,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCommandExecutionResult;
+  runApkHoudokuNextTestingCommandSuggestion?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextTestingCommandExecutionResult;
+  preflightApkHoudokuNextTestingCommandSuggestion?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextTestingCommandPreflightResult;
+  getApkHoudokuTestingCommandAuditBundle?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCommandAuditBundleResult;
+  getApkHoudokuNextTestingCommandAuditBundle?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextTestingCommandAuditBundleResult;
+  runApkHoudokuNextTestingCommandTransaction?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextTestingCommandTransactionResult;
+  runApkHoudokuNextTestingCommandTransactions?: (
+    options?: ApkHoudokuNextTestingCommandTransactionLoopOptions
+  ) => ApkHoudokuNextTestingCommandTransactionLoopResult;
+  runApkHoudokuNextTestingCommandTransactionsWithCompletionPolicy?: (
+    options?: ApkHoudokuTestingCompletionPolicyOptions
+  ) => ApkHoudokuTestingCompletionPolicyResult;
+  getApkHoudokuTestingCompletionPolicyPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkHoudokuTestingCompletionPolicyPreset;
+  runApkHoudokuTestingCompletionPolicyPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCompletionPolicyResult;
+  getApkHoudokuTestingCompletionPolicyPresetRecommendation?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCompletionPolicyPresetRecommendation;
+  runApkHoudokuTestingCompletionPolicyPresetRecommendation?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCompletionPolicyPresetRunResult;
+  runApkHoudokuTestingAutopilotSession?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingAutopilotSessionResult;
+  getApkHoudokuTestingAutopilotQuickStatus?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingAutopilotQuickStatus;
+  getApkHoudokuTestingExecutionSummary?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingExecutionSummary;
+  runApkHoudokuTestingQuickStart?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingQuickStartResult;
+  runApkHoudokuTestingFunctionalRun?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingFunctionalRunResult;
+  getApkHoudokuTestingDispatchModel?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingDispatchModel;
+  runApkHoudokuIntegrationCommandSuggestion?: (
+    command?: ApkHoudokuIntegrationCommandSuggestion,
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCommandExecutionResult;
+  runApkHoudokuNextIntegrationCommandSuggestion?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationCommandExecutionResult;
   getApkHoudokuReadyStatus?: () => ApkHoudokuReadyStatus;
   getApkUiModel?: (previousRuntimeStateVersion: string | undefined) => ApkUiModel;
   repairApkRuntimeState?: () => ApkRuntimeRepairResult;
@@ -469,6 +728,201 @@ export abstract class TiyoClientAbstract implements TiyoClientInterface {
   runApkStartupRemediationUntilStable?: (
     options?: ApkStartupRemediationUntilStableOptions
   ) => ApkStartupRemediationUntilStableResult;
+  getApkStartupExecutionSummary?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkStartupExecutionSummary;
+  runApkHoudokuTestReady?: (
+    options?: ApkHoudokuTestReadyOptions
+  ) => ApkHoudokuTestReadyResult;
+  getApkHoudokuLaunchModel?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuLaunchModel;
+  getApkHoudokuLaunchModelWithOverrides?: (
+    options?: ApkHoudokuLaunchModelOptions
+  ) => ApkHoudokuLaunchModel;
+  getApkHoudokuTestingPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkHoudokuTestingPreset;
+  getApkHoudokuTestingModel?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingModel;
+  getApkHoudokuTestingModelWithOptions?: (
+    options?: ApkHoudokuTestingModelOptions
+  ) => ApkHoudokuTestingModel;
+  getApkHoudokuIntegrationPlan?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationPlan;
+  runApkHoudokuIntegrationStep?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    stepCode?: string,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationExecutionResult;
+  runApkHoudokuIntegrationPlan?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationExecutionResult;
+  getApkNextHoudokuIntegrationStep?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationStep;
+  runApkNextHoudokuIntegrationStep?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationStepRunResult;
+  getApkHoudokuIntegrationControllerModel?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationControllerModel;
+  runApkHoudokuIntegrationControllerCycle?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationControllerCycleResult;
+  getApkHoudokuIntegrationCommandSuggestions?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCommandSuggestionsResult;
+  preflightApkHoudokuIntegrationCommandSuggestion?: (
+    command?: ApkHoudokuIntegrationCommandSuggestion,
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCommandPreflightResult;
+  preflightApkHoudokuNextIntegrationCommandSuggestion?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationCommandPreflightResult;
+  getApkHoudokuIntegrationCommandAuditBundle?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCommandAuditBundleResult;
+  getApkHoudokuNextIntegrationCommandAuditBundle?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationCommandAuditBundleResult;
+  runApkHoudokuNextIntegrationCommandTransaction?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationCommandTransactionResult;
+  runApkHoudokuNextIntegrationCommandTransactions?: (
+    options?: ApkHoudokuNextIntegrationCommandTransactionLoopOptions
+  ) => ApkHoudokuNextIntegrationCommandTransactionLoopResult;
+  runApkHoudokuNextIntegrationCommandTransactionsWithCompletionPolicy?: (
+    options?: ApkHoudokuIntegrationCompletionPolicyOptions
+  ) => ApkHoudokuIntegrationCompletionPolicyResult;
+  getApkHoudokuIntegrationCompletionPolicyPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkHoudokuIntegrationCompletionPolicyPreset;
+  runApkHoudokuIntegrationCompletionPolicyPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCompletionPolicyResult;
+  getApkHoudokuIntegrationCompletionPolicyPresetRecommendation?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCompletionPolicyPresetRecommendation;
+  runApkHoudokuIntegrationCompletionPolicyPresetRecommendation?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCompletionPolicyPresetRunResult;
+  runApkHoudokuIntegrationAutopilotSession?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationAutopilotSessionResult;
+  getApkHoudokuIntegrationAutopilotQuickStatus?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationAutopilotQuickStatus;
+  getApkHoudokuTestingEntryModel?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingEntryModel;
+  runApkHoudokuTestingPrimaryAction?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingPrimaryActionRunResult;
+  runApkHoudokuTestingSession?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingSessionRunResult;
+  runApkHoudokuTestingSessionLoop?: (
+    options?: ApkHoudokuTestingSessionLoopOptions
+  ) => ApkHoudokuTestingSessionLoopResult;
+  getApkHoudokuTestingControllerModel?: (
+    options?: ApkHoudokuTestingControllerModelOptions
+  ) => ApkHoudokuTestingControllerModel;
+  runApkHoudokuTestingControllerCycle?: (
+    options?: ApkHoudokuTestingControllerModelOptions
+  ) => ApkHoudokuTestingControllerCycleResult;
+  runApkHoudokuTestingAutopilot?: (
+    options?: ApkHoudokuTestingAutopilotOptions
+  ) => ApkHoudokuTestingAutopilotResult;
+  getApkHoudokuTestingCommandSuggestions?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCommandSuggestionsResult;
+  preflightApkHoudokuTestingCommandSuggestion?: (
+    command?: ApkHoudokuTestingCommandSuggestion,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCommandPreflightResult;
+  runApkHoudokuTestingCommandSuggestion?: (
+    command?: ApkHoudokuTestingCommandSuggestion,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCommandExecutionResult;
+  runApkHoudokuNextTestingCommandSuggestion?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextTestingCommandExecutionResult;
+  preflightApkHoudokuNextTestingCommandSuggestion?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextTestingCommandPreflightResult;
+  getApkHoudokuTestingCommandAuditBundle?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCommandAuditBundleResult;
+  getApkHoudokuNextTestingCommandAuditBundle?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextTestingCommandAuditBundleResult;
+  runApkHoudokuNextTestingCommandTransaction?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextTestingCommandTransactionResult;
+  runApkHoudokuNextTestingCommandTransactions?: (
+    options?: ApkHoudokuNextTestingCommandTransactionLoopOptions
+  ) => ApkHoudokuNextTestingCommandTransactionLoopResult;
+  runApkHoudokuNextTestingCommandTransactionsWithCompletionPolicy?: (
+    options?: ApkHoudokuTestingCompletionPolicyOptions
+  ) => ApkHoudokuTestingCompletionPolicyResult;
+  getApkHoudokuTestingCompletionPolicyPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile
+  ) => ApkHoudokuTestingCompletionPolicyPreset;
+  runApkHoudokuTestingCompletionPolicyPreset?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCompletionPolicyResult;
+  getApkHoudokuTestingCompletionPolicyPresetRecommendation?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCompletionPolicyPresetRecommendation;
+  runApkHoudokuTestingCompletionPolicyPresetRecommendation?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingCompletionPolicyPresetRunResult;
+  runApkHoudokuTestingAutopilotSession?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingAutopilotSessionResult;
+  getApkHoudokuTestingAutopilotQuickStatus?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingAutopilotQuickStatus;
+  getApkHoudokuTestingExecutionSummary?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingExecutionSummary;
+  runApkHoudokuTestingQuickStart?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingQuickStartResult;
+  runApkHoudokuTestingFunctionalRun?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingFunctionalRunResult;
+  getApkHoudokuTestingDispatchModel?: (
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuTestingDispatchModel;
+  runApkHoudokuIntegrationCommandSuggestion?: (
+    command?: ApkHoudokuIntegrationCommandSuggestion,
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuIntegrationCommandExecutionResult;
+  runApkHoudokuNextIntegrationCommandSuggestion?: (
+    profile?: ApkRuntimeStrictStartupProfile,
+    previousRuntimeStateVersion?: string
+  ) => ApkHoudokuNextIntegrationCommandExecutionResult;
   getApkHoudokuReadyStatus?: () => ApkHoudokuReadyStatus;
   getApkUiModel?: (previousRuntimeStateVersion: string | undefined) => ApkUiModel;
   repairApkRuntimeState?: () => ApkRuntimeRepairResult;

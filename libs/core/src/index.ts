@@ -33,6 +33,76 @@ import {
   ApkStartupRemediationRunResult,
   ApkStartupRemediationStep,
   ApkStartupRemediationStepRunResult,
+  ApkStartupExecutionSummary,
+  ApkHoudokuTestReadyOptions,
+  ApkHoudokuTestReadyResult,
+  ApkHoudokuLaunchModel,
+  ApkHoudokuLaunchModelOptions,
+  ApkHoudokuTestingPreset,
+  ApkHoudokuTestingModel,
+  ApkHoudokuTestingModelOptions,
+  ApkHoudokuIntegrationPlan,
+  ApkHoudokuIntegrationExecutionResult,
+  ApkHoudokuIntegrationStepExecutionResult,
+  ApkHoudokuNextIntegrationStep,
+  ApkHoudokuNextIntegrationStepRunResult,
+  ApkHoudokuIntegrationControllerModel,
+  ApkHoudokuIntegrationControllerCycleResult,
+  ApkHoudokuIntegrationCommandSuggestion,
+  ApkHoudokuIntegrationCommandSuggestionsResult,
+  ApkHoudokuIntegrationCommandExecutionResult,
+  ApkHoudokuNextIntegrationCommandExecutionResult,
+  ApkHoudokuIntegrationCommandPreflightResult,
+  ApkHoudokuNextIntegrationCommandPreflightResult,
+  ApkHoudokuIntegrationCommandAuditBundleResult,
+  ApkHoudokuNextIntegrationCommandAuditBundleResult,
+  ApkHoudokuNextIntegrationCommandTransactionResult,
+  ApkHoudokuNextIntegrationCommandTransactionLoopOptions,
+  ApkHoudokuNextIntegrationCommandTransactionLoopResult,
+  ApkHoudokuNextIntegrationCommandTransactionLoopStopReason,
+  ApkHoudokuIntegrationCompletionPolicy,
+  ApkHoudokuIntegrationCompletionPolicyOptions,
+  ApkHoudokuIntegrationCompletionPolicyResult,
+  ApkHoudokuIntegrationCompletionPolicyPreset,
+  ApkHoudokuIntegrationCompletionPolicyPresetRecommendation,
+  ApkHoudokuIntegrationCompletionPolicyPresetRunResult,
+  ApkHoudokuIntegrationAutopilotSessionResult,
+  ApkHoudokuIntegrationAutopilotQuickStatus,
+  ApkHoudokuTestingEntryModel,
+  ApkHoudokuTestingPrimaryActionRunResult,
+  ApkHoudokuTestingSessionRunResult,
+  ApkHoudokuTestingSessionLoopOptions,
+  ApkHoudokuTestingSessionLoopResult,
+  ApkHoudokuTestingSessionLoopStopReason,
+  ApkHoudokuTestingControllerModelOptions,
+  ApkHoudokuTestingControllerModel,
+  ApkHoudokuTestingControllerCycleResult,
+  ApkHoudokuTestingAutopilotOptions,
+  ApkHoudokuTestingAutopilotResult,
+  ApkHoudokuTestingCommandSuggestion,
+  ApkHoudokuTestingCommandSuggestionsResult,
+  ApkHoudokuTestingCommandPreflightResult,
+  ApkHoudokuTestingCommandExecutionResult,
+  ApkHoudokuNextTestingCommandExecutionResult,
+  ApkHoudokuNextTestingCommandPreflightResult,
+  ApkHoudokuTestingCommandAuditBundleResult,
+  ApkHoudokuNextTestingCommandAuditBundleResult,
+  ApkHoudokuNextTestingCommandTransactionResult,
+  ApkHoudokuNextTestingCommandTransactionLoopOptions,
+  ApkHoudokuNextTestingCommandTransactionLoopResult,
+  ApkHoudokuNextTestingCommandTransactionLoopStopReason,
+  ApkHoudokuTestingCompletionPolicy,
+  ApkHoudokuTestingCompletionPolicyOptions,
+  ApkHoudokuTestingCompletionPolicyResult,
+  ApkHoudokuTestingCompletionPolicyPreset,
+  ApkHoudokuTestingCompletionPolicyPresetRecommendation,
+  ApkHoudokuTestingCompletionPolicyPresetRunResult,
+  ApkHoudokuTestingAutopilotSessionResult,
+  ApkHoudokuTestingAutopilotQuickStatus,
+  ApkHoudokuTestingExecutionSummary,
+  ApkHoudokuTestingQuickStartResult,
+  ApkHoudokuTestingFunctionalRunResult,
+  ApkHoudokuTestingDispatchModel,
   ApkStartupRemediationUntilStableOptions,
   ApkStartupRemediationUntilStableResult,
   ApkStartupRemediationUntilStableStopReason,
@@ -2106,6 +2176,2327 @@ export class TiyoClient extends TiyoClientAbstract {
       finalRun,
       stopReason,
       converged: finalRun.afterGate.passed,
+    };
+  };
+
+  override getApkStartupExecutionSummary = (
+    profile: ApkRuntimeStrictStartupProfile = 'test'
+  ): ApkStartupExecutionSummary => {
+    const runtimeState = this.getApkRuntimeState();
+    const readyStatus = this.getApkHoudokuReadyStatus();
+    const recommendedGate = this.runApkRecommendedStrictStartupGate(profile);
+
+    return {
+      profile,
+      runtimeStateVersion: runtimeState.runtimeStateVersion,
+      directoryStatus: readyStatus.directoryStatus,
+      readyStatus,
+      recommendedGatePassed: recommendedGate.passed,
+      recommendedGateReasons: recommendedGate.reasons,
+      suggestedNextAction: readyStatus.suggestedNextAction,
+      actionHintsCount: runtimeState.actionHints.length,
+      activeMappingCount: readyStatus.activeMappingCount,
+      unsupportedApkCount: readyStatus.unsupportedApkCount,
+      unneededApkCount: readyStatus.unneededApkCount,
+    };
+  };
+
+  override runApkHoudokuTestReady = (
+    options?: ApkHoudokuTestReadyOptions
+  ): ApkHoudokuTestReadyResult => {
+    const profile = options?.profile || 'test';
+    const maxRemediationRuns =
+      Number.isFinite(options?.maxRemediationRuns) && (options?.maxRemediationRuns || 0) > 0
+        ? Math.floor(options?.maxRemediationRuns || 1)
+        : 3;
+
+    const remediation = this.runApkStartupRemediationUntilStable({
+      profile,
+      overrides: options?.overrides,
+      maxRuns: maxRemediationRuns,
+    });
+
+    const summary = this.getApkStartupExecutionSummary(profile);
+    const finalGate = remediation.finalRun.afterGate;
+
+    return {
+      profile,
+      maxRemediationRuns,
+      usedOverrides: options?.overrides,
+      remediation,
+      summary,
+      readyForHoudokuTest: finalGate.passed,
+      reasons: finalGate.reasons,
+    };
+  };
+
+  override getApkHoudokuLaunchModel = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuLaunchModel => {
+    return this.getApkHoudokuLaunchModelWithOverrides({
+      profile,
+      previousRuntimeStateVersion,
+      overrides: undefined,
+    });
+  };
+
+  override getApkHoudokuLaunchModelWithOverrides = (
+    options?: ApkHoudokuLaunchModelOptions
+  ): ApkHoudokuLaunchModel => {
+    const profile = options?.profile || 'test';
+    const previousRuntimeStateVersion = options?.previousRuntimeStateVersion;
+    const overrides = options?.overrides;
+    const uiModel = this.getApkUiModel(previousRuntimeStateVersion);
+    const startupSummary = this.getApkStartupExecutionSummary(profile);
+    const recommendedStrictGate = this._getStrictStartupRecommendationWithOverrides(profile, overrides);
+    const strictGate = this.runApkRuntimeStrictStartupGate(recommendedStrictGate.options);
+    const remediationPlan = {
+      ...this.getApkStartupRemediationPlan(profile),
+      recommendation: recommendedStrictGate,
+      strictGate,
+    };
+
+    return {
+      profile,
+      uiModel,
+      startupSummary,
+      recommendedStrictGate,
+      remediationPlan,
+      canRunHoudokuTest: strictGate.passed,
+      blockerReasons: strictGate.reasons,
+      usedOverrides: overrides,
+    };
+  };
+
+  override getApkHoudokuTestingPreset = (
+    profile: ApkRuntimeStrictStartupProfile = 'test'
+  ): ApkHoudokuTestingPreset => {
+    if (profile === 'dev') {
+      return {
+        profile,
+        overrides: {
+          maintenanceOptions: {
+            applyUnneededCleanup: false,
+            unneededCleanupPolicy: 'unsupported-only',
+            stabilizeMaxSteps: 1,
+          },
+          requireReadyLevel: 'warning',
+          requireNoUnsupportedApks: false,
+          requireNoUnneededApks: false,
+        },
+        notes: [
+          'Developer testing preset favors speed and non-destructive behavior.',
+          'Unsupported/unneeded APK constraints are relaxed for integration iteration.',
+        ],
+      };
+    }
+
+    if (profile === 'prod') {
+      return {
+        profile,
+        overrides: {
+          maintenanceOptions: {
+            applyUnneededCleanup: false,
+            unneededCleanupPolicy: 'all-unneeded',
+            stabilizeMaxSteps: 2,
+          },
+          requireReadyLevel: 'ready',
+          requireNoUnsupportedApks: true,
+          requireNoUnneededApks: false,
+        },
+        notes: [
+          'Production-like testing keeps readiness strict while remaining non-destructive by default.',
+        ],
+      };
+    }
+
+    return {
+      profile: 'test',
+      overrides: {
+        maintenanceOptions: {
+          applyUnneededCleanup: false,
+          unneededCleanupPolicy: 'unsupported-only',
+          stabilizeMaxSteps: 1,
+        },
+        requireReadyLevel: 'warning',
+        requireNoUnsupportedApks: false,
+        requireNoUnneededApks: false,
+      },
+      notes: [
+        'Default test preset is designed for Houdoku integration testing without destructive cleanup.',
+      ],
+    };
+  };
+
+  override getApkHoudokuTestingModel = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingModel => {
+    return this.getApkHoudokuTestingModelWithOptions({
+      profile,
+      previousRuntimeStateVersion,
+    });
+  };
+
+  override getApkHoudokuTestingModelWithOptions = (
+    options?: ApkHoudokuTestingModelOptions
+  ): ApkHoudokuTestingModel => {
+    const profile = options?.profile || 'test';
+    const previousRuntimeStateVersion = options?.previousRuntimeStateVersion;
+    const preset = this.getApkHoudokuTestingPreset(profile);
+    const overrides = options?.overrides || preset.overrides;
+    const maxRemediationRuns =
+      Number.isFinite(options?.maxRemediationRuns) && (options?.maxRemediationRuns || 0) > 0
+        ? Math.floor(options?.maxRemediationRuns || 1)
+        : 2;
+
+    const launchModel = this.getApkHoudokuLaunchModelWithOverrides({
+      profile,
+      previousRuntimeStateVersion,
+      overrides,
+    });
+    const testReady = this.runApkHoudokuTestReady({
+      profile,
+      overrides,
+      maxRemediationRuns,
+    });
+
+    return {
+      profile,
+      preset,
+      launchModel,
+      testReady,
+    };
+  };
+
+  override getApkHoudokuIntegrationPlan = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationPlan => {
+    const testingModel = this.getApkHoudokuTestingModel(profile, previousRuntimeStateVersion);
+
+    const steps = [
+      {
+        code: 'load-model',
+        title: 'Load launch model',
+        method: 'getApkHoudokuTestingModelWithOptions',
+        description:
+          'Fetch consolidated testing model at settings/open time to render current readiness and remediation context.',
+        blocking: true,
+      },
+      {
+        code: 'render-gate',
+        title: 'Render gate state',
+        method: 'getApkHoudokuLaunchModelWithOverrides',
+        description:
+          'Display canRunHoudokuTest, blockerReasons, and strict recommendation details in the launch/test panel.',
+        blocking: true,
+      },
+      {
+        code: 'run-ready',
+        title: 'Run test-ready flow',
+        method: 'runApkHoudokuTestReady',
+        description:
+          'On user action, execute bounded remediation and capture final readyForHoudokuTest plus reasons.',
+        blocking: true,
+      },
+      {
+        code: 'refresh-summary',
+        title: 'Refresh summary',
+        method: 'getApkStartupExecutionSummary',
+        description:
+          'Refresh lightweight startup summary after remediation or setting changes for status bar/badges.',
+        blocking: false,
+      },
+      {
+        code: 'manual-remediation',
+        title: 'Show manual remediation',
+        method: 'getApkStartupRemediationPlan',
+        description:
+          'If gate still fails, show ordered manual remediation steps mapped to backend methods.',
+        blocking: false,
+      },
+    ];
+
+    return {
+      profile,
+      testingModel,
+      steps,
+    };
+  };
+
+  private _executeHoudokuIntegrationStepByCode = (
+    profile: ApkRuntimeStrictStartupProfile,
+    stepCode: string,
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationStepExecutionResult => {
+    if (stepCode === 'load-model') {
+      this.getApkHoudokuTestingModelWithOptions({
+        profile,
+        previousRuntimeStateVersion,
+      });
+      return {
+        code: stepCode,
+        method: 'getApkHoudokuTestingModelWithOptions',
+        executed: true,
+        note: 'Testing model loaded.',
+      };
+    }
+
+    if (stepCode === 'render-gate') {
+      this.getApkHoudokuLaunchModel(profile, previousRuntimeStateVersion);
+      return {
+        code: stepCode,
+        method: 'getApkHoudokuLaunchModel',
+        executed: true,
+        note: 'Launch gate model refreshed.',
+      };
+    }
+
+    if (stepCode === 'run-ready') {
+      const preset = this.getApkHoudokuTestingPreset(profile);
+      this.runApkHoudokuTestReady({
+        profile,
+        overrides: preset.overrides,
+        maxRemediationRuns: 2,
+      });
+      return {
+        code: stepCode,
+        method: 'runApkHoudokuTestReady',
+        executed: true,
+        note: 'Test-ready flow executed with backend testing preset.',
+      };
+    }
+
+    if (stepCode === 'refresh-summary') {
+      this.getApkStartupExecutionSummary(profile);
+      return {
+        code: stepCode,
+        method: 'getApkStartupExecutionSummary',
+        executed: true,
+        note: 'Startup summary refreshed.',
+      };
+    }
+
+    if (stepCode === 'manual-remediation') {
+      this.getApkStartupRemediationPlan(profile);
+      return {
+        code: stepCode,
+        method: 'getApkStartupRemediationPlan',
+        executed: true,
+        note: 'Manual remediation plan loaded.',
+      };
+    }
+
+    return {
+      code: stepCode,
+      method: 'unknown',
+      executed: false,
+      note: `No integration step handler is registered for '${stepCode}'.`,
+    };
+  };
+
+  override runApkHoudokuIntegrationStep = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    stepCode?: string,
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationExecutionResult => {
+    const normalizedStepCode = stepCode?.trim();
+    const stepResults: ApkHoudokuIntegrationStepExecutionResult[] = [];
+
+    if (normalizedStepCode !== undefined && normalizedStepCode.length > 0) {
+      stepResults.push(
+        this._executeHoudokuIntegrationStepByCode(
+          profile,
+          normalizedStepCode,
+          previousRuntimeStateVersion
+        )
+      );
+    }
+
+    const launchModel = this.getApkHoudokuLaunchModel(profile, previousRuntimeStateVersion);
+
+    return {
+      profile,
+      requestedStepCode: normalizedStepCode,
+      stepResults,
+      launchModel,
+    };
+  };
+
+  override runApkHoudokuIntegrationPlan = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationExecutionResult => {
+    const plan = this.getApkHoudokuIntegrationPlan(profile, previousRuntimeStateVersion);
+    const stepResults = plan.steps.map((step) =>
+      this._executeHoudokuIntegrationStepByCode(profile, step.code, previousRuntimeStateVersion)
+    );
+    const launchModel = this.getApkHoudokuLaunchModel(profile, previousRuntimeStateVersion);
+
+    return {
+      profile,
+      requestedStepCode: undefined,
+      stepResults,
+      launchModel,
+    };
+  };
+
+  override getApkNextHoudokuIntegrationStep = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextIntegrationStep => {
+    const plan = this.getApkHoudokuIntegrationPlan(profile, previousRuntimeStateVersion);
+    const launchModel = plan.testingModel.launchModel;
+
+    if (!launchModel.canRunHoudokuTest) {
+      const runReadyStep = plan.steps.find((step) => step.code === 'run-ready');
+      return {
+        profile,
+        canRunHoudokuTest: false,
+        step: runReadyStep,
+        reason: 'Houdoku test gate is blocked; run test-ready flow to attempt automatic remediation.',
+      };
+    }
+
+    const refreshSummaryStep = plan.steps.find((step) => step.code === 'refresh-summary');
+    return {
+      profile,
+      canRunHoudokuTest: true,
+      step: refreshSummaryStep,
+      reason: 'Houdoku test gate is open; refresh summary to keep status and diagnostics current.',
+    };
+  };
+
+  override runApkNextHoudokuIntegrationStep = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextIntegrationStepRunResult => {
+    const nextStep = this.getApkNextHoudokuIntegrationStep(profile, previousRuntimeStateVersion);
+    const execution = this.runApkHoudokuIntegrationStep(
+      profile,
+      nextStep.step?.code,
+      previousRuntimeStateVersion
+    );
+
+    return {
+      profile,
+      nextStep,
+      execution,
+    };
+  };
+
+  override getApkHoudokuIntegrationControllerModel = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationControllerModel => {
+    const plan = this.getApkHoudokuIntegrationPlan(profile, previousRuntimeStateVersion);
+    const nextStep = this.getApkNextHoudokuIntegrationStep(profile, previousRuntimeStateVersion);
+
+    return {
+      profile,
+      previousRuntimeStateVersion,
+      plan,
+      nextStep,
+      canRunHoudokuTest: plan.testingModel.launchModel.canRunHoudokuTest,
+      suggestedStepCode: nextStep.step?.code,
+    };
+  };
+
+  override runApkHoudokuIntegrationControllerCycle = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationControllerCycleResult => {
+    const initialModel = this.getApkHoudokuIntegrationControllerModel(
+      profile,
+      previousRuntimeStateVersion
+    );
+    const nextStepRun = this.runApkNextHoudokuIntegrationStep(
+      profile,
+      previousRuntimeStateVersion
+    );
+    const refreshedModel = this.getApkHoudokuIntegrationControllerModel(
+      profile,
+      previousRuntimeStateVersion
+    );
+
+    return {
+      profile,
+      initialModel,
+      nextStepRun,
+      refreshedModel,
+    };
+  };
+
+  private _getHoudokuIntegrationCommandSuggestionForStep = (
+    profile: ApkRuntimeStrictStartupProfile,
+    step: { code: string; method: string; blocking: boolean; description: string },
+    previousRuntimeStateVersion?: string,
+    isNextStep: boolean = false
+  ): ApkHoudokuIntegrationCommandSuggestion => {
+    const preset = this.getApkHoudokuTestingPreset(profile);
+
+    if (step.code === 'load-model') {
+      return {
+        stepCode: step.code,
+        method: 'getApkHoudokuTestingModelWithOptions',
+        argsJson: JSON.stringify([
+          {
+            profile,
+            previousRuntimeStateVersion,
+          },
+        ]),
+        blocking: step.blocking,
+        description: step.description,
+        isNextStep,
+      };
+    }
+
+    if (step.code === 'render-gate') {
+      return {
+        stepCode: step.code,
+        method: 'getApkHoudokuLaunchModel',
+        argsJson: JSON.stringify([profile, previousRuntimeStateVersion]),
+        blocking: step.blocking,
+        description: step.description,
+        isNextStep,
+      };
+    }
+
+    if (step.code === 'run-ready') {
+      return {
+        stepCode: step.code,
+        method: 'runApkHoudokuTestReady',
+        argsJson: JSON.stringify([
+          {
+            profile,
+            overrides: preset.overrides,
+            maxRemediationRuns: 2,
+          },
+        ]),
+        blocking: step.blocking,
+        description: step.description,
+        isNextStep,
+      };
+    }
+
+    if (step.code === 'refresh-summary') {
+      return {
+        stepCode: step.code,
+        method: 'getApkStartupExecutionSummary',
+        argsJson: JSON.stringify([profile]),
+        blocking: step.blocking,
+        description: step.description,
+        isNextStep,
+      };
+    }
+
+    if (step.code === 'manual-remediation') {
+      return {
+        stepCode: step.code,
+        method: 'getApkStartupRemediationPlan',
+        argsJson: JSON.stringify([profile]),
+        blocking: step.blocking,
+        description: step.description,
+        isNextStep,
+      };
+    }
+
+    return {
+      stepCode: step.code,
+      method: step.method,
+      argsJson: JSON.stringify([]),
+      blocking: step.blocking,
+      description: step.description,
+      isNextStep,
+    };
+  };
+
+  override getApkHoudokuIntegrationCommandSuggestions = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationCommandSuggestionsResult => {
+    const plan = this.getApkHoudokuIntegrationPlan(profile, previousRuntimeStateVersion);
+    const nextStep = this.getApkNextHoudokuIntegrationStep(profile, previousRuntimeStateVersion);
+
+    const suggestions = plan.steps.map((step) =>
+      this._getHoudokuIntegrationCommandSuggestionForStep(
+        profile,
+        step,
+        previousRuntimeStateVersion,
+        nextStep.step?.code === step.code
+      )
+    );
+
+    return {
+      profile,
+      previousRuntimeStateVersion,
+      suggestions,
+      nextStep,
+    };
+  };
+
+  override preflightApkHoudokuIntegrationCommandSuggestion = (
+    command?: ApkHoudokuIntegrationCommandSuggestion,
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationCommandPreflightResult => {
+    const normalizedMethod = command?.method?.trim();
+    const normalizedStepCode = command?.stepCode?.trim();
+
+    if (
+      command === undefined ||
+      normalizedMethod === undefined ||
+      normalizedMethod.length === 0 ||
+      normalizedStepCode === undefined ||
+      normalizedStepCode.length === 0
+    ) {
+      return {
+        profile,
+        command,
+        normalizedMethod,
+        normalizedStepCode,
+        allowlisted: false,
+        parsedArgsValid: false,
+        parsedArgs: undefined,
+        error: 'Command suggestion is missing required method or stepCode.',
+      };
+    }
+
+    const available = this.getApkHoudokuIntegrationCommandSuggestions(
+      profile,
+      previousRuntimeStateVersion
+    ).suggestions;
+    const allowlistedCommand = available.find(
+      (entry) => entry.stepCode === normalizedStepCode && entry.method === normalizedMethod
+    );
+    if (allowlistedCommand === undefined) {
+      return {
+        profile,
+        command,
+        normalizedMethod,
+        normalizedStepCode,
+        allowlisted: false,
+        parsedArgsValid: false,
+        parsedArgs: undefined,
+        error: `Command '${normalizedMethod}' for step '${normalizedStepCode}' is not allowlisted.`,
+      };
+    }
+
+    let parsedArgs: unknown[] = [];
+    try {
+      const parsed = JSON.parse(command.argsJson);
+      if (!Array.isArray(parsed)) {
+        return {
+          profile,
+          command,
+          normalizedMethod,
+          normalizedStepCode,
+          allowlisted: true,
+          parsedArgsValid: false,
+          parsedArgs: undefined,
+          error: 'argsJson must decode to an array.',
+        };
+      }
+      parsedArgs = parsed;
+    } catch {
+      return {
+        profile,
+        command,
+        normalizedMethod,
+        normalizedStepCode,
+        allowlisted: true,
+        parsedArgsValid: false,
+        parsedArgs: undefined,
+        error: 'argsJson is not valid JSON.',
+      };
+    }
+
+    return {
+      profile,
+      command,
+      normalizedMethod,
+      normalizedStepCode,
+      allowlisted: true,
+      parsedArgsValid: true,
+      parsedArgs,
+      error: undefined,
+    };
+  };
+
+  override preflightApkHoudokuNextIntegrationCommandSuggestion = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextIntegrationCommandPreflightResult => {
+    const suggestions = this.getApkHoudokuIntegrationCommandSuggestions(
+      profile,
+      previousRuntimeStateVersion
+    );
+    const command = suggestions.suggestions.find((entry) => entry.isNextStep);
+    const preflight = this.preflightApkHoudokuIntegrationCommandSuggestion(
+      command,
+      profile,
+      previousRuntimeStateVersion
+    );
+
+    return {
+      profile,
+      nextStep: suggestions.nextStep,
+      command,
+      preflight,
+    };
+  };
+
+  override getApkHoudokuIntegrationCommandAuditBundle = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationCommandAuditBundleResult => {
+    const suggestions = this.getApkHoudokuIntegrationCommandSuggestions(
+      profile,
+      previousRuntimeStateVersion
+    );
+
+    const entries = suggestions.suggestions.map((command) => {
+      const preflight = this.preflightApkHoudokuIntegrationCommandSuggestion(
+        command,
+        profile,
+        previousRuntimeStateVersion
+      );
+      return {
+        command,
+        preflight,
+        dispatchReady: preflight.allowlisted && preflight.parsedArgsValid,
+      };
+    });
+
+    return {
+      profile,
+      previousRuntimeStateVersion,
+      nextStep: suggestions.nextStep,
+      entries,
+    };
+  };
+
+  override getApkHoudokuNextIntegrationCommandAuditBundle = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextIntegrationCommandAuditBundleResult => {
+    const nextPreflight = this.preflightApkHoudokuNextIntegrationCommandSuggestion(
+      profile,
+      previousRuntimeStateVersion
+    );
+
+    return {
+      profile,
+      previousRuntimeStateVersion,
+      nextStep: nextPreflight.nextStep,
+      command: nextPreflight.command,
+      preflight: nextPreflight.preflight,
+      dispatchReady:
+        nextPreflight.preflight.allowlisted && nextPreflight.preflight.parsedArgsValid,
+    };
+  };
+
+  override runApkHoudokuNextIntegrationCommandTransaction = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextIntegrationCommandTransactionResult => {
+    const beforeAudit = this.getApkHoudokuNextIntegrationCommandAuditBundle(
+      profile,
+      previousRuntimeStateVersion
+    );
+
+    if (!beforeAudit.dispatchReady) {
+      const afterAudit = this.getApkHoudokuNextIntegrationCommandAuditBundle(
+        profile,
+        previousRuntimeStateVersion
+      );
+      return {
+        profile,
+        previousRuntimeStateVersion,
+        beforeAudit,
+        executed: false,
+        execution: undefined,
+        afterAudit,
+        skippedReason: 'Next integration command is not dispatch-ready.',
+      };
+    }
+
+    const execution = this.runApkHoudokuNextIntegrationCommandSuggestion(
+      profile,
+      previousRuntimeStateVersion
+    );
+    const afterAudit = this.getApkHoudokuNextIntegrationCommandAuditBundle(
+      profile,
+      previousRuntimeStateVersion
+    );
+
+    return {
+      profile,
+      previousRuntimeStateVersion,
+      beforeAudit,
+      executed: execution.execution.executed,
+      execution,
+      afterAudit,
+      skippedReason: execution.execution.executed
+        ? undefined
+        : execution.execution.error || 'Next integration command execution failed.',
+    };
+  };
+
+  override runApkHoudokuNextIntegrationCommandTransactions = (
+    options?: ApkHoudokuNextIntegrationCommandTransactionLoopOptions
+  ): ApkHoudokuNextIntegrationCommandTransactionLoopResult => {
+    const profile = options?.profile || 'test';
+    const previousRuntimeStateVersion = options?.previousRuntimeStateVersion;
+    const maxRuns =
+      Number.isFinite(options?.maxRuns) && (options?.maxRuns || 0) > 0
+        ? Math.floor(options?.maxRuns || 1)
+        : 3;
+
+    const runs: ApkHoudokuNextIntegrationCommandTransactionResult[] = [];
+    let stopReason: ApkHoudokuNextIntegrationCommandTransactionLoopStopReason = 'reached-max-runs';
+    let converged = false;
+
+    for (let index = 0; index < maxRuns; index += 1) {
+      const run = this.runApkHoudokuNextIntegrationCommandTransaction(
+        profile,
+        previousRuntimeStateVersion
+      );
+      runs.push(run);
+
+      if (!run.beforeAudit.dispatchReady) {
+        stopReason = 'skipped-not-ready';
+        break;
+      }
+
+      if (!run.executed) {
+        stopReason = 'execution-failed';
+        break;
+      }
+
+      const beforeStepCode = run.beforeAudit.command?.stepCode;
+      const afterStepCode = run.afterAudit.command?.stepCode;
+      const beforeReady = run.beforeAudit.dispatchReady;
+      const afterReady = run.afterAudit.dispatchReady;
+
+      if (beforeStepCode === afterStepCode && beforeReady === afterReady) {
+        stopReason = 'converged';
+        converged = true;
+        break;
+      }
+    }
+
+    const finalAudit =
+      runs.length > 0
+        ? runs[runs.length - 1].afterAudit
+        : this.getApkHoudokuNextIntegrationCommandAuditBundle(
+            profile,
+            previousRuntimeStateVersion
+          );
+
+    return {
+      profile,
+      previousRuntimeStateVersion,
+      maxRuns,
+      runs,
+      finalAudit,
+      stopReason,
+      converged,
+    };
+  };
+
+  override runApkHoudokuNextIntegrationCommandTransactionsWithCompletionPolicy = (
+    options?: ApkHoudokuIntegrationCompletionPolicyOptions
+  ): ApkHoudokuIntegrationCompletionPolicyResult => {
+    const profile = options?.profile || 'test';
+    const previousRuntimeStateVersion = options?.previousRuntimeStateVersion;
+    const requiredStepCodes = (options?.requiredStepCodes || [])
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    const stableNextStepRuns =
+      Number.isFinite(options?.stableNextStepRuns) && (options?.stableNextStepRuns || 0) > 0
+        ? Math.floor(options?.stableNextStepRuns || 1)
+        : 1;
+
+    const policy: ApkHoudokuIntegrationCompletionPolicy = {
+      requiredStepCodes,
+      requireDispatchReady: options?.requireDispatchReady !== false,
+      requireCanRunHoudokuTest: options?.requireCanRunHoudokuTest !== false,
+      stableNextStepRuns,
+    };
+
+    const loop = this.runApkHoudokuNextIntegrationCommandTransactions({
+      profile,
+      previousRuntimeStateVersion,
+      maxRuns: options?.maxRuns,
+    });
+
+    const executedStepCodes = loop.runs
+      .filter((run) => run.executed)
+      .map((run) => run.execution?.command?.stepCode)
+      .filter((value): value is string => value !== undefined);
+    const completedRequiredStepCodes = policy.requiredStepCodes.filter((requiredCode) =>
+      executedStepCodes.includes(requiredCode)
+    );
+    const missingRequiredStepCodes = policy.requiredStepCodes.filter(
+      (requiredCode) => !completedRequiredStepCodes.includes(requiredCode)
+    );
+
+    const finalStepCode = loop.finalAudit.command?.stepCode;
+    let stableNextStepRunsObserved = 0;
+    for (let index = loop.runs.length - 1; index >= 0; index -= 1) {
+      const run = loop.runs[index];
+      const runStepCode = run.afterAudit.command?.stepCode;
+      if (runStepCode !== finalStepCode) {
+        break;
+      }
+      stableNextStepRunsObserved += 1;
+    }
+
+    const reasons: string[] = [];
+    if (policy.requireDispatchReady && !loop.finalAudit.dispatchReady) {
+      reasons.push('Final next-command audit is not dispatch-ready.');
+    }
+    if (policy.requireCanRunHoudokuTest && !loop.finalAudit.nextStep.canRunHoudokuTest) {
+      reasons.push('Final next-step state cannot run Houdoku test.');
+    }
+    if (missingRequiredStepCodes.length > 0) {
+      reasons.push(
+        `Required step codes not completed: ${missingRequiredStepCodes.join(', ')}.`
+      );
+    }
+    if (stableNextStepRunsObserved < policy.stableNextStepRuns) {
+      reasons.push(
+        `Stable next-step runs observed ${stableNextStepRunsObserved} is below required ${policy.stableNextStepRuns}.`
+      );
+    }
+
+    return {
+      profile,
+      previousRuntimeStateVersion,
+      policy,
+      loop,
+      completed: reasons.length === 0,
+      reasons,
+      completedRequiredStepCodes,
+      missingRequiredStepCodes,
+      stableNextStepRunsObserved,
+    };
+  };
+
+  override getApkHoudokuIntegrationCompletionPolicyPreset = (
+    profile: ApkRuntimeStrictStartupProfile = 'test'
+  ): ApkHoudokuIntegrationCompletionPolicyPreset => {
+    if (profile === 'dev') {
+      return {
+        profile,
+        maxRuns: 2,
+        policy: {
+          requiredStepCodes: [],
+          requireDispatchReady: false,
+          requireCanRunHoudokuTest: false,
+          stableNextStepRuns: 1,
+        },
+        notes: [
+          'Developer preset favors fast feedback over strict completion gating.',
+          'Useful for rapid UI/IPC wiring iterations.',
+        ],
+      };
+    }
+
+    if (profile === 'prod') {
+      return {
+        profile,
+        maxRuns: 5,
+        policy: {
+          requiredStepCodes: ['refresh-summary'],
+          requireDispatchReady: true,
+          requireCanRunHoudokuTest: true,
+          stableNextStepRuns: 2,
+        },
+        notes: [
+          'Production preset requires dispatch/test readiness and stronger step stability.',
+          'Recommended for release and operator confidence checks.',
+        ],
+      };
+    }
+
+    return {
+      profile: 'test',
+      maxRuns: 3,
+      policy: {
+        requiredStepCodes: ['refresh-summary'],
+        requireDispatchReady: true,
+        requireCanRunHoudokuTest: true,
+        stableNextStepRuns: 1,
+      },
+      notes: [
+        'Test preset balances deterministic completion checks with bounded execution.',
+        'Recommended default for Houdoku integration verification.',
+      ],
+    };
+  };
+
+  override runApkHoudokuIntegrationCompletionPolicyPreset = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationCompletionPolicyResult => {
+    const preset = this.getApkHoudokuIntegrationCompletionPolicyPreset(profile);
+
+    return this.runApkHoudokuNextIntegrationCommandTransactionsWithCompletionPolicy({
+      profile: preset.profile,
+      previousRuntimeStateVersion,
+      maxRuns: preset.maxRuns,
+      requiredStepCodes: preset.policy.requiredStepCodes,
+      requireDispatchReady: preset.policy.requireDispatchReady,
+      requireCanRunHoudokuTest: preset.policy.requireCanRunHoudokuTest,
+      stableNextStepRuns: preset.policy.stableNextStepRuns,
+    });
+  };
+
+  override getApkHoudokuIntegrationCompletionPolicyPresetRecommendation = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationCompletionPolicyPresetRecommendation => {
+    const runtimeQuickStatus = this.getApkRuntimeQuickStatus(previousRuntimeStateVersion);
+    const nextAudit = this.getApkHoudokuNextIntegrationCommandAuditBundle(
+      'test',
+      previousRuntimeStateVersion
+    );
+    const recommendedStrictGate = this.runApkRecommendedStrictStartupGate('test');
+
+    let recommendedProfile: ApkRuntimeStrictStartupProfile = 'test';
+    const reasons: string[] = [];
+
+    if (!nextAudit.dispatchReady || !nextAudit.nextStep.canRunHoudokuTest) {
+      recommendedProfile = 'dev';
+      reasons.push('Dispatch/test gate is not fully ready; use dev preset for fast iteration.');
+    } else if (runtimeQuickStatus.hasBlockingErrors || !recommendedStrictGate.passed) {
+      recommendedProfile = 'test';
+      reasons.push('Runtime has non-ideal signals; keep balanced test preset for verification.');
+    } else {
+      recommendedProfile = 'prod';
+      reasons.push('Dispatch/test readiness is strong and strict gate is passing; use prod preset.');
+    }
+
+    const recommendedPreset = this.getApkHoudokuIntegrationCompletionPolicyPreset(recommendedProfile);
+
+    return {
+      previousRuntimeStateVersion,
+      recommendedProfile,
+      recommendedPreset,
+      reasons,
+      overrideOptions: {
+        profile: recommendedPreset.profile,
+        previousRuntimeStateVersion,
+        maxRuns: recommendedPreset.maxRuns,
+        requiredStepCodes: recommendedPreset.policy.requiredStepCodes,
+        requireDispatchReady: recommendedPreset.policy.requireDispatchReady,
+        requireCanRunHoudokuTest: recommendedPreset.policy.requireCanRunHoudokuTest,
+        stableNextStepRuns: recommendedPreset.policy.stableNextStepRuns,
+      },
+      signals: {
+        dispatchReady: nextAudit.dispatchReady,
+        canRunHoudokuTest: nextAudit.nextStep.canRunHoudokuTest,
+        hasBlockingErrors: runtimeQuickStatus.hasBlockingErrors,
+        recommendedStrictGatePassed: recommendedStrictGate.passed,
+      },
+    };
+  };
+
+  override runApkHoudokuIntegrationCompletionPolicyPresetRecommendation = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationCompletionPolicyPresetRunResult => {
+    const recommendation = this.getApkHoudokuIntegrationCompletionPolicyPresetRecommendation(
+      previousRuntimeStateVersion
+    );
+    const result = this.runApkHoudokuNextIntegrationCommandTransactionsWithCompletionPolicy(
+      recommendation.overrideOptions
+    );
+
+    return {
+      recommendation,
+      result,
+    };
+  };
+
+  override runApkHoudokuIntegrationAutopilotSession = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationAutopilotSessionResult => {
+    const run = this.runApkHoudokuIntegrationCompletionPolicyPresetRecommendation(
+      previousRuntimeStateVersion
+    );
+
+    let status: ApkHoudokuIntegrationAutopilotSessionResult['status'] = 'incomplete';
+    if (run.result.completed) {
+      status = 'completed';
+    } else if (run.result.reasons.length > 0) {
+      status = 'needs-attention';
+    }
+
+    const summary = run.result.completed
+      ? `Autopilot completed with '${run.recommendation.recommendedProfile}' preset.`
+      : `Autopilot incomplete with '${run.recommendation.recommendedProfile}' preset.`;
+
+    const suggestedNextAction = run.result.completed
+      ? 'none'
+      : run.result.missingRequiredStepCodes.length > 0
+        ? 'manual-remediation'
+        : 'run-ready';
+
+    return {
+      previousRuntimeStateVersion,
+      recommendation: run.recommendation,
+      run,
+      status,
+      summary,
+      suggestedNextAction,
+    };
+  };
+
+  override getApkHoudokuIntegrationAutopilotQuickStatus = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationAutopilotQuickStatus => {
+    const digest = this.getApkRuntimeDigest();
+    const runtimeQuickStatus = this.getApkRuntimeQuickStatus(previousRuntimeStateVersion);
+    const recommendation = this.getApkHoudokuIntegrationCompletionPolicyPresetRecommendation(
+      previousRuntimeStateVersion
+    );
+
+    let status: ApkHoudokuIntegrationAutopilotQuickStatus['status'] = 'incomplete';
+    let suggestedNextAction = 'run-ready';
+    let reason = 'Autopilot quick status indicates additional integration actions are available.';
+
+    if (runtimeQuickStatus.hasBlockingErrors) {
+      status = 'needs-attention';
+      suggestedNextAction = 'manual-remediation';
+      reason = 'Runtime quick status has blocking errors that require attention.';
+    } else if (
+      recommendation.signals.dispatchReady &&
+      recommendation.signals.canRunHoudokuTest &&
+      recommendation.recommendedProfile !== 'dev'
+    ) {
+      status = 'completed';
+      suggestedNextAction = 'none';
+      reason = 'Dispatch and test-readiness signals are healthy for current runtime state.';
+    }
+
+    return {
+      previousRuntimeStateVersion,
+      runtimeStateVersion: digest.runtimeStateVersion,
+      changed: runtimeQuickStatus.changed,
+      runtimeQuickStatus,
+      status,
+      recommendedProfile: recommendation.recommendedProfile,
+      suggestedNextAction,
+      reason,
+    };
+  };
+
+  override getApkHoudokuTestingEntryModel = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingEntryModel => {
+    const runtimeDigest = this.getApkRuntimeDigest();
+    const runtimeQuickStatus = this.getApkRuntimeQuickStatus(previousRuntimeStateVersion);
+    const autopilotQuickStatus = this.getApkHoudokuTestingAutopilotQuickStatus(
+      previousRuntimeStateVersion
+    );
+    const testingPreset = this.getApkHoudokuTestingPreset('test');
+    const completionRecommendation =
+      this.getApkHoudokuTestingCompletionPolicyPresetRecommendation(
+        previousRuntimeStateVersion
+      );
+
+    const canStartInteractiveTest =
+      autopilotQuickStatus.status === 'completed' ||
+      (completionRecommendation.signals.dispatchReady &&
+        completionRecommendation.signals.canRunInteractiveTest);
+    const suggestedPrimaryAction = canStartInteractiveTest
+      ? 'start-houdoku-test'
+      : autopilotQuickStatus.suggestedNextAction;
+
+    return {
+      previousRuntimeStateVersion,
+      runtimeDigest,
+      runtimeQuickStatus,
+      autopilotQuickStatus,
+      testingPreset,
+      completionRecommendation,
+      canStartInteractiveTest,
+      suggestedPrimaryAction,
+    };
+  };
+
+  override runApkHoudokuTestingPrimaryAction = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingPrimaryActionRunResult => {
+    const entryModel = this.getApkHoudokuTestingEntryModel(previousRuntimeStateVersion);
+    const action = entryModel.suggestedPrimaryAction;
+
+    if (action === 'start-houdoku-test' || action === 'run-ready') {
+      const testReady = this.runApkHoudokuTestReady({
+        profile: 'test',
+        overrides: entryModel.testingPreset.overrides,
+        maxRemediationRuns: 2,
+      });
+      return {
+        previousRuntimeStateVersion,
+        action,
+        performed: true,
+        reason: testReady.readyForHoudokuTest
+          ? 'Primary action executed and Houdoku test is ready.'
+          : 'Primary action executed but Houdoku test readiness is still blocked.',
+        entryModel,
+        testReady,
+        remediationPlan: undefined,
+      };
+    }
+
+    if (action === 'manual-remediation') {
+      const remediationPlan = this.getApkStartupRemediationPlan('test');
+      return {
+        previousRuntimeStateVersion,
+        action,
+        performed: true,
+        reason: 'Primary action executed and remediation plan loaded.',
+        entryModel,
+        testReady: undefined,
+        remediationPlan,
+      };
+    }
+
+    if (action === 'none') {
+      return {
+        previousRuntimeStateVersion,
+        action,
+        performed: false,
+        reason: 'No primary action required.',
+        entryModel,
+        testReady: undefined,
+        remediationPlan: undefined,
+      };
+    }
+
+    return {
+      previousRuntimeStateVersion,
+      action,
+      performed: false,
+      reason: `No primary action handler is registered for '${action}'.`,
+      entryModel,
+      testReady: undefined,
+      remediationPlan: undefined,
+    };
+  };
+
+  override runApkHoudokuTestingSession = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingSessionRunResult => {
+    const beforeEntryModel = this.getApkHoudokuTestingEntryModel(previousRuntimeStateVersion);
+    const primaryActionRun = this.runApkHoudokuTestingPrimaryAction(previousRuntimeStateVersion);
+    const afterEntryModel = this.getApkHoudokuTestingEntryModel(
+      beforeEntryModel.runtimeDigest.runtimeStateVersion
+    );
+
+    const completed =
+      afterEntryModel.canStartInteractiveTest &&
+      (afterEntryModel.suggestedPrimaryAction === 'start-houdoku-test' ||
+        afterEntryModel.suggestedPrimaryAction === 'none');
+    const reason = completed
+      ? 'Testing session advanced to interactive-test-ready state.'
+      : 'Testing session executed, but additional actions are still required.';
+
+    return {
+      previousRuntimeStateVersion,
+      beforeEntryModel,
+      primaryActionRun,
+      afterEntryModel,
+      completed,
+      reason,
+    };
+  };
+
+  override runApkHoudokuTestingSessionLoop = (
+    options?: ApkHoudokuTestingSessionLoopOptions
+  ): ApkHoudokuTestingSessionLoopResult => {
+    const previousRuntimeStateVersion = options?.previousRuntimeStateVersion;
+    const maxRuns =
+      Number.isFinite(options?.maxRuns) && (options?.maxRuns || 0) > 0
+        ? Math.floor(options?.maxRuns || 1)
+        : 3;
+    const stableCompletionRuns =
+      Number.isFinite(options?.stableCompletionRuns) && (options?.stableCompletionRuns || 0) > 0
+        ? Math.floor(options?.stableCompletionRuns || 1)
+        : 1;
+
+    const runs: ApkHoudokuTestingSessionRunResult[] = [];
+    let nextPreviousRuntimeStateVersion = previousRuntimeStateVersion;
+    let stopReason: ApkHoudokuTestingSessionLoopStopReason = 'max-runs';
+    let completedRunCount = 0;
+
+    for (let index = 0; index < maxRuns; index += 1) {
+      const sessionRun = this.runApkHoudokuTestingSession(nextPreviousRuntimeStateVersion);
+      runs.push(sessionRun);
+      nextPreviousRuntimeStateVersion = sessionRun.afterEntryModel.runtimeDigest.runtimeStateVersion;
+
+      if (sessionRun.completed) {
+        completedRunCount += 1;
+      } else {
+        completedRunCount = 0;
+      }
+
+      if (completedRunCount >= stableCompletionRuns) {
+        stopReason = 'completed';
+        break;
+      }
+    }
+
+    const finalSession =
+      runs[runs.length - 1] || this.runApkHoudokuTestingSession(previousRuntimeStateVersion);
+    const completed = stopReason === 'completed';
+
+    return {
+      previousRuntimeStateVersion,
+      maxRuns,
+      stableCompletionRuns,
+      runs,
+      finalSession,
+      completed,
+      completedRunCount,
+      stopReason,
+      reason: completed
+        ? 'Testing session loop reached a stable interactive-test-ready state.'
+        : 'Testing session loop reached max runs before stable completion.',
+    };
+  };
+
+  override getApkHoudokuTestingControllerModel = (
+    options?: ApkHoudokuTestingControllerModelOptions
+  ): ApkHoudokuTestingControllerModel => {
+    const previousRuntimeStateVersion = options?.previousRuntimeStateVersion;
+    const maxRuns =
+      Number.isFinite(options?.maxRuns) && (options?.maxRuns || 0) > 0
+        ? Math.floor(options?.maxRuns || 1)
+        : 3;
+    const stableCompletionRuns =
+      Number.isFinite(options?.stableCompletionRuns) && (options?.stableCompletionRuns || 0) > 0
+        ? Math.floor(options?.stableCompletionRuns || 1)
+        : 1;
+    const entryModel = this.getApkHoudokuTestingEntryModel(previousRuntimeStateVersion);
+    const canRunInteractiveTest = entryModel.canStartInteractiveTest;
+    const status = canRunInteractiveTest ? 'ready' : 'needs-action';
+
+    return {
+      previousRuntimeStateVersion,
+      entryModel,
+      canRunInteractiveTest,
+      suggestedPrimaryAction: entryModel.suggestedPrimaryAction,
+      suggestedLoopOptions: {
+        maxRuns,
+        stableCompletionRuns,
+      },
+      status,
+      reason: canRunInteractiveTest
+        ? 'Controller model indicates interactive testing can start.'
+        : 'Controller model indicates additional test preparation actions are required.',
+    };
+  };
+
+  override runApkHoudokuTestingControllerCycle = (
+    options?: ApkHoudokuTestingControllerModelOptions
+  ): ApkHoudokuTestingControllerCycleResult => {
+    const initialModel = this.getApkHoudokuTestingControllerModel(options);
+    const loop = this.runApkHoudokuTestingSessionLoop({
+      previousRuntimeStateVersion: initialModel.entryModel.runtimeDigest.runtimeStateVersion,
+      maxRuns: initialModel.suggestedLoopOptions.maxRuns,
+      stableCompletionRuns: initialModel.suggestedLoopOptions.stableCompletionRuns,
+    });
+    const refreshedModel = this.getApkHoudokuTestingControllerModel({
+      previousRuntimeStateVersion: loop.finalSession.afterEntryModel.runtimeDigest.runtimeStateVersion,
+      maxRuns: initialModel.suggestedLoopOptions.maxRuns,
+      stableCompletionRuns: initialModel.suggestedLoopOptions.stableCompletionRuns,
+    });
+    const completed = loop.completed && refreshedModel.canRunInteractiveTest;
+
+    return {
+      previousRuntimeStateVersion: options?.previousRuntimeStateVersion,
+      initialModel,
+      loop,
+      refreshedModel,
+      completed,
+      suggestedNextAction: completed ? 'none' : refreshedModel.suggestedPrimaryAction,
+      reason: completed
+        ? 'Testing controller cycle completed and interactive testing is ready.'
+        : 'Testing controller cycle finished but additional primary actions remain.',
+    };
+  };
+
+  override runApkHoudokuTestingAutopilot = (
+    options?: ApkHoudokuTestingAutopilotOptions
+  ): ApkHoudokuTestingAutopilotResult => {
+    const controllerModel = this.getApkHoudokuTestingControllerModel(options);
+    const controllerCycle = this.runApkHoudokuTestingControllerCycle(options);
+    const launchModel = this.getApkHoudokuLaunchModelWithOverrides({
+      profile: 'test',
+      previousRuntimeStateVersion:
+        controllerCycle.refreshedModel.entryModel.runtimeDigest.runtimeStateVersion,
+      overrides: controllerCycle.refreshedModel.entryModel.testingPreset.overrides,
+    });
+    const completed = controllerCycle.completed;
+
+    return {
+      previousRuntimeStateVersion: options?.previousRuntimeStateVersion,
+      controllerModel,
+      controllerCycle,
+      launchModel,
+      status: completed ? 'completed' : 'incomplete',
+      completed,
+      suggestedNextAction: completed ? 'none' : controllerCycle.suggestedNextAction,
+      reason: completed
+        ? 'Testing autopilot completed with interactive testing ready.'
+        : 'Testing autopilot ran, but further primary actions are still required.',
+    };
+  };
+
+  override getApkHoudokuTestingCommandSuggestions = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingCommandSuggestionsResult => {
+    const controllerModel = this.getApkHoudokuTestingControllerModel({
+      previousRuntimeStateVersion,
+    });
+
+    const suggestions: ApkHoudokuTestingCommandSuggestion[] = [
+      {
+        stepCode: 'refresh-entry',
+        method: 'getApkHoudokuTestingEntryModel',
+        argsJson: JSON.stringify([previousRuntimeStateVersion]),
+        description: 'Refresh testing entry model for current runtime state.',
+        isNextStep: controllerModel.canRunInteractiveTest,
+      },
+      {
+        stepCode: 'run-primary-action',
+        method: 'runApkHoudokuTestingPrimaryAction',
+        argsJson: JSON.stringify([previousRuntimeStateVersion]),
+        description: 'Execute suggested primary testing action from entry model.',
+        isNextStep: !controllerModel.canRunInteractiveTest,
+      },
+      {
+        stepCode: 'run-autopilot',
+        method: 'runApkHoudokuTestingAutopilot',
+        argsJson: JSON.stringify([
+          {
+            previousRuntimeStateVersion,
+            maxRuns: controllerModel.suggestedLoopOptions.maxRuns,
+            stableCompletionRuns: controllerModel.suggestedLoopOptions.stableCompletionRuns,
+          },
+        ]),
+        description: 'Run testing autopilot cycle with controller-recommended loop options.',
+        isNextStep: false,
+      },
+    ];
+
+    return {
+      previousRuntimeStateVersion,
+      suggestions,
+      controllerModel,
+    };
+  };
+
+  override preflightApkHoudokuTestingCommandSuggestion = (
+    command?: ApkHoudokuTestingCommandSuggestion,
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingCommandPreflightResult => {
+    const normalizedMethod = command?.method?.trim();
+    const normalizedStepCode = command?.stepCode?.trim();
+
+    if (
+      command === undefined ||
+      normalizedMethod === undefined ||
+      normalizedMethod.length === 0 ||
+      normalizedStepCode === undefined ||
+      normalizedStepCode.length === 0
+    ) {
+      return {
+        previousRuntimeStateVersion,
+        command,
+        normalizedMethod,
+        normalizedStepCode,
+        allowlisted: false,
+        parsedArgsValid: false,
+        parsedArgs: undefined,
+        error: 'Command suggestion is missing required method or stepCode.',
+      };
+    }
+
+    const available = this.getApkHoudokuTestingCommandSuggestions(
+      previousRuntimeStateVersion
+    ).suggestions;
+    const allowlistedCommand = available.find(
+      (entry) => entry.stepCode === normalizedStepCode && entry.method === normalizedMethod
+    );
+    if (allowlistedCommand === undefined) {
+      return {
+        previousRuntimeStateVersion,
+        command,
+        normalizedMethod,
+        normalizedStepCode,
+        allowlisted: false,
+        parsedArgsValid: false,
+        parsedArgs: undefined,
+        error: `Command '${normalizedMethod}' for step '${normalizedStepCode}' is not allowlisted.`,
+      };
+    }
+
+    let parsedArgs: unknown[] = [];
+    try {
+      const parsed = JSON.parse(command.argsJson);
+      if (!Array.isArray(parsed)) {
+        return {
+          previousRuntimeStateVersion,
+          command,
+          normalizedMethod,
+          normalizedStepCode,
+          allowlisted: true,
+          parsedArgsValid: false,
+          parsedArgs: undefined,
+          error: 'argsJson must decode to an array.',
+        };
+      }
+      parsedArgs = parsed;
+    } catch {
+      return {
+        previousRuntimeStateVersion,
+        command,
+        normalizedMethod,
+        normalizedStepCode,
+        allowlisted: true,
+        parsedArgsValid: false,
+        parsedArgs: undefined,
+        error: 'argsJson is not valid JSON.',
+      };
+    }
+
+    return {
+      previousRuntimeStateVersion,
+      command,
+      normalizedMethod,
+      normalizedStepCode,
+      allowlisted: true,
+      parsedArgsValid: true,
+      parsedArgs,
+      error: undefined,
+    };
+  };
+
+  private _executeAllowlistedHoudokuTestingCommand = (
+    method: string,
+    args: unknown[]
+  ): void => {
+    if (method === 'getApkHoudokuTestingEntryModel') {
+      this.getApkHoudokuTestingEntryModel(...(args as [string?]));
+      return;
+    }
+
+    if (method === 'runApkHoudokuTestingPrimaryAction') {
+      this.runApkHoudokuTestingPrimaryAction(...(args as [string?]));
+      return;
+    }
+
+    if (method === 'runApkHoudokuTestingAutopilot') {
+      this.runApkHoudokuTestingAutopilot(...(args as [ApkHoudokuTestingAutopilotOptions?]));
+      return;
+    }
+
+    throw new Error(`Method '${method}' is not allowlisted for testing command dispatch.`);
+  };
+
+  override runApkHoudokuTestingCommandSuggestion = (
+    command?: ApkHoudokuTestingCommandSuggestion,
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingCommandExecutionResult => {
+    const preflight = this.preflightApkHoudokuTestingCommandSuggestion(
+      command,
+      previousRuntimeStateVersion
+    );
+
+    if (
+      !preflight.allowlisted ||
+      !preflight.parsedArgsValid ||
+      preflight.normalizedMethod === undefined
+    ) {
+      return {
+        previousRuntimeStateVersion,
+        command,
+        allowlisted: preflight.allowlisted,
+        parsedArgsValid: preflight.parsedArgsValid,
+        executed: false,
+        error: preflight.error,
+        autopilot: this.runApkHoudokuTestingAutopilot({
+          previousRuntimeStateVersion,
+        }),
+      };
+    }
+
+    try {
+      this._executeAllowlistedHoudokuTestingCommand(
+        preflight.normalizedMethod,
+        preflight.parsedArgs || []
+      );
+      return {
+        previousRuntimeStateVersion,
+        command,
+        allowlisted: true,
+        parsedArgsValid: true,
+        executed: true,
+        error: undefined,
+        autopilot: this.runApkHoudokuTestingAutopilot({
+          previousRuntimeStateVersion,
+        }),
+      };
+    } catch (error) {
+      return {
+        previousRuntimeStateVersion,
+        command,
+        allowlisted: true,
+        parsedArgsValid: true,
+        executed: false,
+        error: error instanceof Error ? error.message : 'Unknown command execution error.',
+        autopilot: this.runApkHoudokuTestingAutopilot({
+          previousRuntimeStateVersion,
+        }),
+      };
+    }
+  };
+
+  override runApkHoudokuNextTestingCommandSuggestion = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextTestingCommandExecutionResult => {
+    const suggestions = this.getApkHoudokuTestingCommandSuggestions(
+      previousRuntimeStateVersion
+    );
+    const command = suggestions.suggestions.find((entry) => entry.isNextStep);
+    const execution = this.runApkHoudokuTestingCommandSuggestion(
+      command,
+      previousRuntimeStateVersion
+    );
+
+    return {
+      previousRuntimeStateVersion,
+      command,
+      execution,
+    };
+  };
+
+  override preflightApkHoudokuNextTestingCommandSuggestion = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextTestingCommandPreflightResult => {
+    const suggestions = this.getApkHoudokuTestingCommandSuggestions(
+      previousRuntimeStateVersion
+    );
+    const command = suggestions.suggestions.find((entry) => entry.isNextStep);
+    const preflight = this.preflightApkHoudokuTestingCommandSuggestion(
+      command,
+      previousRuntimeStateVersion
+    );
+
+    return {
+      previousRuntimeStateVersion,
+      command,
+      preflight,
+    };
+  };
+
+  override getApkHoudokuTestingCommandAuditBundle = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingCommandAuditBundleResult => {
+    const suggestions = this.getApkHoudokuTestingCommandSuggestions(
+      previousRuntimeStateVersion
+    );
+
+    const entries = suggestions.suggestions.map((command) => {
+      const preflight = this.preflightApkHoudokuTestingCommandSuggestion(
+        command,
+        previousRuntimeStateVersion
+      );
+      return {
+        command,
+        preflight,
+        dispatchReady: preflight.allowlisted && preflight.parsedArgsValid,
+      };
+    });
+
+    return {
+      previousRuntimeStateVersion,
+      entries,
+    };
+  };
+
+  override getApkHoudokuNextTestingCommandAuditBundle = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextTestingCommandAuditBundleResult => {
+    const nextPreflight = this.preflightApkHoudokuNextTestingCommandSuggestion(
+      previousRuntimeStateVersion
+    );
+
+    return {
+      previousRuntimeStateVersion,
+      command: nextPreflight.command,
+      preflight: nextPreflight.preflight,
+      dispatchReady:
+        nextPreflight.preflight.allowlisted && nextPreflight.preflight.parsedArgsValid,
+    };
+  };
+
+  override runApkHoudokuNextTestingCommandTransaction = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextTestingCommandTransactionResult => {
+    const beforeAudit = this.getApkHoudokuNextTestingCommandAuditBundle(
+      previousRuntimeStateVersion
+    );
+
+    if (!beforeAudit.dispatchReady) {
+      const afterAudit = this.getApkHoudokuNextTestingCommandAuditBundle(
+        previousRuntimeStateVersion
+      );
+      return {
+        previousRuntimeStateVersion,
+        beforeAudit,
+        executed: false,
+        execution: undefined,
+        afterAudit,
+        skippedReason: 'Next testing command is not dispatch-ready.',
+      };
+    }
+
+    const execution = this.runApkHoudokuNextTestingCommandSuggestion(
+      previousRuntimeStateVersion
+    );
+    const afterAudit = this.getApkHoudokuNextTestingCommandAuditBundle(
+      previousRuntimeStateVersion
+    );
+
+    return {
+      previousRuntimeStateVersion,
+      beforeAudit,
+      executed: execution.execution.executed,
+      execution,
+      afterAudit,
+      skippedReason: execution.execution.executed
+        ? undefined
+        : execution.execution.error || 'Next testing command execution failed.',
+    };
+  };
+
+  override runApkHoudokuNextTestingCommandTransactions = (
+    options?: ApkHoudokuNextTestingCommandTransactionLoopOptions
+  ): ApkHoudokuNextTestingCommandTransactionLoopResult => {
+    const previousRuntimeStateVersion = options?.previousRuntimeStateVersion;
+    const maxRuns =
+      Number.isFinite(options?.maxRuns) && (options?.maxRuns || 0) > 0
+        ? Math.floor(options?.maxRuns || 1)
+        : 3;
+
+    const runs: ApkHoudokuNextTestingCommandTransactionResult[] = [];
+    let stopReason: ApkHoudokuNextTestingCommandTransactionLoopStopReason = 'reached-max-runs';
+    let converged = false;
+
+    for (let index = 0; index < maxRuns; index += 1) {
+      const run = this.runApkHoudokuNextTestingCommandTransaction(previousRuntimeStateVersion);
+      runs.push(run);
+
+      if (!run.beforeAudit.dispatchReady) {
+        stopReason = 'skipped-not-ready';
+        break;
+      }
+
+      if (!run.executed) {
+        stopReason = 'execution-failed';
+        break;
+      }
+
+      const beforeStepCode = run.beforeAudit.command?.stepCode;
+      const afterStepCode = run.afterAudit.command?.stepCode;
+      const beforeReady = run.beforeAudit.dispatchReady;
+      const afterReady = run.afterAudit.dispatchReady;
+
+      if (beforeStepCode === afterStepCode && beforeReady === afterReady) {
+        stopReason = 'converged';
+        converged = true;
+        break;
+      }
+    }
+
+    const finalAudit =
+      runs.length > 0
+        ? runs[runs.length - 1].afterAudit
+        : this.getApkHoudokuNextTestingCommandAuditBundle(previousRuntimeStateVersion);
+
+    return {
+      previousRuntimeStateVersion,
+      maxRuns,
+      runs,
+      finalAudit,
+      stopReason,
+      converged,
+    };
+  };
+
+  override runApkHoudokuNextTestingCommandTransactionsWithCompletionPolicy = (
+    options?: ApkHoudokuTestingCompletionPolicyOptions
+  ): ApkHoudokuTestingCompletionPolicyResult => {
+    const profile = options?.profile || 'test';
+    const previousRuntimeStateVersion = options?.previousRuntimeStateVersion;
+    const requiredStepCodes = (options?.requiredStepCodes || [])
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    const stableNextStepRuns =
+      Number.isFinite(options?.stableNextStepRuns) && (options?.stableNextStepRuns || 0) > 0
+        ? Math.floor(options?.stableNextStepRuns || 1)
+        : 1;
+
+    const policy: ApkHoudokuTestingCompletionPolicy = {
+      requiredStepCodes,
+      requireDispatchReady: options?.requireDispatchReady !== false,
+      requireInteractiveTestReady: options?.requireInteractiveTestReady !== false,
+      stableNextStepRuns,
+    };
+
+    const loop = this.runApkHoudokuNextTestingCommandTransactions({
+      previousRuntimeStateVersion,
+      maxRuns: options?.maxRuns,
+    });
+
+    const executedStepCodes = loop.runs
+      .filter((run) => run.executed)
+      .map((run) => run.execution?.command?.stepCode)
+      .filter((value): value is string => value !== undefined);
+    const completedRequiredStepCodes = policy.requiredStepCodes.filter((requiredCode) =>
+      executedStepCodes.includes(requiredCode)
+    );
+    const missingRequiredStepCodes = policy.requiredStepCodes.filter(
+      (requiredCode) => !completedRequiredStepCodes.includes(requiredCode)
+    );
+
+    const finalStepCode = loop.finalAudit.command?.stepCode;
+    let stableNextStepRunsObserved = 0;
+    for (let index = loop.runs.length - 1; index >= 0; index -= 1) {
+      const run = loop.runs[index];
+      const runStepCode = run.afterAudit.command?.stepCode;
+      if (runStepCode !== finalStepCode) {
+        break;
+      }
+      stableNextStepRunsObserved += 1;
+    }
+
+    const finalControllerModel = this.getApkHoudokuTestingControllerModel({
+      previousRuntimeStateVersion,
+    });
+
+    const reasons: string[] = [];
+    if (policy.requireDispatchReady && !loop.finalAudit.dispatchReady) {
+      reasons.push('Final next-testing-command audit is not dispatch-ready.');
+    }
+    if (policy.requireInteractiveTestReady && !finalControllerModel.canRunInteractiveTest) {
+      reasons.push('Final testing controller state cannot run interactive test.');
+    }
+    if (missingRequiredStepCodes.length > 0) {
+      reasons.push(
+        `Required testing step codes not completed: ${missingRequiredStepCodes.join(', ')}.`
+      );
+    }
+    if (stableNextStepRunsObserved < policy.stableNextStepRuns) {
+      reasons.push(
+        `Stable next-testing-step runs observed ${stableNextStepRunsObserved} is below required ${policy.stableNextStepRuns}.`
+      );
+    }
+
+    return {
+      profile,
+      previousRuntimeStateVersion,
+      policy,
+      loop,
+      finalControllerModel,
+      completed: reasons.length === 0,
+      reasons,
+      completedRequiredStepCodes,
+      missingRequiredStepCodes,
+      stableNextStepRunsObserved,
+    };
+  };
+
+  override getApkHoudokuTestingCompletionPolicyPreset = (
+    profile: ApkRuntimeStrictStartupProfile = 'test'
+  ): ApkHoudokuTestingCompletionPolicyPreset => {
+    if (profile === 'dev') {
+      return {
+        profile,
+        maxRuns: 2,
+        policy: {
+          requiredStepCodes: [],
+          requireDispatchReady: false,
+          requireInteractiveTestReady: false,
+          stableNextStepRuns: 1,
+        },
+        notes: [
+          'Developer preset favors fast iteration for testing command wiring.',
+          'Use when validating IPC/UX flow before strict readiness checks.',
+        ],
+      };
+    }
+
+    if (profile === 'prod') {
+      return {
+        profile,
+        maxRuns: 5,
+        policy: {
+          requiredStepCodes: ['refresh-entry'],
+          requireDispatchReady: true,
+          requireInteractiveTestReady: true,
+          stableNextStepRuns: 2,
+        },
+        notes: [
+          'Production preset requires dispatch readiness and stable interactive-test readiness.',
+          'Recommended for operator confidence before broad rollout.',
+        ],
+      };
+    }
+
+    return {
+      profile: 'test',
+      maxRuns: 3,
+      policy: {
+        requiredStepCodes: ['refresh-entry'],
+        requireDispatchReady: true,
+        requireInteractiveTestReady: true,
+        stableNextStepRuns: 1,
+      },
+      notes: [
+        'Test preset balances deterministic completion checks with bounded execution.',
+        'Recommended default for Houdoku testing command verification.',
+      ],
+    };
+  };
+
+  override runApkHoudokuTestingCompletionPolicyPreset = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingCompletionPolicyResult => {
+    const preset = this.getApkHoudokuTestingCompletionPolicyPreset(profile);
+
+    return this.runApkHoudokuNextTestingCommandTransactionsWithCompletionPolicy({
+      profile: preset.profile,
+      previousRuntimeStateVersion,
+      maxRuns: preset.maxRuns,
+      requiredStepCodes: preset.policy.requiredStepCodes,
+      requireDispatchReady: preset.policy.requireDispatchReady,
+      requireInteractiveTestReady: preset.policy.requireInteractiveTestReady,
+      stableNextStepRuns: preset.policy.stableNextStepRuns,
+    });
+  };
+
+  override getApkHoudokuTestingCompletionPolicyPresetRecommendation = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingCompletionPolicyPresetRecommendation => {
+    const runtimeQuickStatus = this.getApkRuntimeQuickStatus(previousRuntimeStateVersion);
+    const integrationQuickStatus = this.getApkHoudokuIntegrationAutopilotQuickStatus(
+      previousRuntimeStateVersion
+    );
+    const recommendedStrictGate = this.runApkRecommendedStrictStartupGate('test');
+    const dispatchReady = integrationQuickStatus.status === 'completed';
+    const canRunInteractiveTest = dispatchReady && !runtimeQuickStatus.hasBlockingErrors;
+
+    let recommendedProfile: ApkRuntimeStrictStartupProfile = 'test';
+    const reasons: string[] = [];
+
+    if (!dispatchReady || !canRunInteractiveTest) {
+      recommendedProfile = 'dev';
+      reasons.push('Dispatch/test-interactive readiness is incomplete; use dev preset for fast iteration.');
+    } else if (runtimeQuickStatus.hasBlockingErrors || !recommendedStrictGate.passed) {
+      recommendedProfile = 'test';
+      reasons.push('Runtime signals are non-ideal; keep balanced test preset for verification.');
+    } else {
+      recommendedProfile = 'prod';
+      reasons.push('Testing command dispatch and readiness signals are healthy; use prod preset.');
+    }
+
+    const recommendedPreset = this.getApkHoudokuTestingCompletionPolicyPreset(recommendedProfile);
+
+    return {
+      previousRuntimeStateVersion,
+      recommendedProfile,
+      recommendedPreset,
+      reasons,
+      overrideOptions: {
+        profile: recommendedPreset.profile,
+        previousRuntimeStateVersion,
+        maxRuns: recommendedPreset.maxRuns,
+        requiredStepCodes: recommendedPreset.policy.requiredStepCodes,
+        requireDispatchReady: recommendedPreset.policy.requireDispatchReady,
+        requireInteractiveTestReady: recommendedPreset.policy.requireInteractiveTestReady,
+        stableNextStepRuns: recommendedPreset.policy.stableNextStepRuns,
+      },
+      signals: {
+        dispatchReady,
+        canRunInteractiveTest,
+        hasBlockingErrors: runtimeQuickStatus.hasBlockingErrors,
+        recommendedStrictGatePassed: recommendedStrictGate.passed,
+      },
+    };
+  };
+
+  override runApkHoudokuTestingCompletionPolicyPresetRecommendation = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingCompletionPolicyPresetRunResult => {
+    const recommendation = this.getApkHoudokuTestingCompletionPolicyPresetRecommendation(
+      previousRuntimeStateVersion
+    );
+    const result = this.runApkHoudokuNextTestingCommandTransactionsWithCompletionPolicy(
+      recommendation.overrideOptions
+    );
+
+    return {
+      recommendation,
+      result,
+    };
+  };
+
+  override runApkHoudokuTestingAutopilotSession = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingAutopilotSessionResult => {
+    const run = this.runApkHoudokuTestingCompletionPolicyPresetRecommendation(
+      previousRuntimeStateVersion
+    );
+
+    const status: ApkHoudokuTestingAutopilotSessionResult['status'] = run.result.completed
+      ? 'completed'
+      : 'incomplete';
+    const summary = run.result.completed
+      ? `Testing autopilot completed with '${run.recommendation.recommendedProfile}' preset.`
+      : `Testing autopilot incomplete with '${run.recommendation.recommendedProfile}' preset.`;
+    const suggestedNextAction = run.result.completed
+      ? 'none'
+      : run.result.missingRequiredStepCodes.length > 0
+        ? 'refresh-entry'
+        : 'run-primary-action';
+
+    return {
+      previousRuntimeStateVersion,
+      recommendation: run.recommendation,
+      run,
+      status,
+      summary,
+      suggestedNextAction,
+    };
+  };
+
+  override getApkHoudokuTestingAutopilotQuickStatus = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingAutopilotQuickStatus => {
+    const digest = this.getApkRuntimeDigest();
+    const runtimeQuickStatus = this.getApkRuntimeQuickStatus(previousRuntimeStateVersion);
+    const recommendation = this.getApkHoudokuTestingCompletionPolicyPresetRecommendation(
+      previousRuntimeStateVersion
+    );
+
+    let status: ApkHoudokuTestingAutopilotQuickStatus['status'] = 'incomplete';
+    let suggestedNextAction = 'run-primary-action';
+    let reason = 'Testing quick status indicates additional testing actions are available.';
+
+    if (runtimeQuickStatus.hasBlockingErrors) {
+      suggestedNextAction = 'manual-remediation';
+      reason = 'Runtime quick status has blocking errors that require attention.';
+    } else if (
+      recommendation.signals.dispatchReady &&
+      recommendation.signals.canRunInteractiveTest &&
+      recommendation.recommendedProfile !== 'dev'
+    ) {
+      status = 'completed';
+      suggestedNextAction = 'none';
+      reason = 'Testing command dispatch and interactive readiness signals are healthy.';
+    }
+
+    return {
+      previousRuntimeStateVersion,
+      runtimeStateVersion: digest.runtimeStateVersion,
+      changed: runtimeQuickStatus.changed,
+      runtimeQuickStatus,
+      status,
+      recommendedProfile: recommendation.recommendedProfile,
+      suggestedNextAction,
+      reason,
+    };
+  };
+
+  override getApkHoudokuTestingExecutionSummary = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingExecutionSummary => {
+    const autopilotQuickStatus = this.getApkHoudokuTestingAutopilotQuickStatus(
+      previousRuntimeStateVersion
+    );
+    const completionRecommendation =
+      this.getApkHoudokuTestingCompletionPolicyPresetRecommendation(
+        previousRuntimeStateVersion
+      );
+
+    const canStartInteractiveTest =
+      autopilotQuickStatus.status === 'completed' ||
+      (completionRecommendation.signals.dispatchReady &&
+        completionRecommendation.signals.canRunInteractiveTest);
+
+    let status: ApkHoudokuTestingExecutionSummary['status'] = 'needs-action';
+    let suggestedNextAction = autopilotQuickStatus.suggestedNextAction;
+    let reason = autopilotQuickStatus.reason;
+
+    if (autopilotQuickStatus.runtimeQuickStatus.hasBlockingErrors) {
+      status = 'blocked';
+      suggestedNextAction = 'manual-remediation';
+      reason = 'Runtime has blocking errors and testing cannot proceed safely.';
+    } else if (canStartInteractiveTest) {
+      status = 'ready';
+      suggestedNextAction = 'start-houdoku-test';
+      reason = 'Interactive Houdoku testing is ready to start.';
+    }
+
+    return {
+      previousRuntimeStateVersion,
+      runtimeStateVersion: autopilotQuickStatus.runtimeStateVersion,
+      changed: autopilotQuickStatus.changed,
+      status,
+      canStartInteractiveTest,
+      dispatchReady: completionRecommendation.signals.dispatchReady,
+      suggestedNextAction,
+      reason,
+      autopilotQuickStatus,
+      completionRecommendation,
+    };
+  };
+
+  override runApkHoudokuTestingQuickStart = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingQuickStartResult => {
+    const beforeSummary = this.getApkHoudokuTestingExecutionSummary(previousRuntimeStateVersion);
+
+    if (beforeSummary.status === 'ready') {
+      return {
+        previousRuntimeStateVersion,
+        beforeSummary,
+        actionRun: undefined,
+        afterSummary: beforeSummary,
+        ready: true,
+        suggestedNextAction: 'start-houdoku-test',
+        reason: 'Testing is already ready; no quick-start action was required.',
+      };
+    }
+
+    const actionRun = this.runApkHoudokuTestingPrimaryAction(beforeSummary.runtimeStateVersion);
+    const afterSummary = this.getApkHoudokuTestingExecutionSummary(
+      actionRun.entryModel.runtimeDigest.runtimeStateVersion
+    );
+    const ready = afterSummary.status === 'ready';
+
+    return {
+      previousRuntimeStateVersion,
+      beforeSummary,
+      actionRun,
+      afterSummary,
+      ready,
+      suggestedNextAction: ready ? 'start-houdoku-test' : afterSummary.suggestedNextAction,
+      reason: ready
+        ? 'Quick-start executed and testing is now ready.'
+        : 'Quick-start executed, but additional testing actions are still required.',
+    };
+  };
+
+  override runApkHoudokuTestingFunctionalRun = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingFunctionalRunResult => {
+    const summary = this.getApkHoudokuTestingExecutionSummary(previousRuntimeStateVersion);
+    const quickStart = this.runApkHoudokuTestingQuickStart(
+      summary.runtimeStateVersion
+    );
+    const testingPreset = this.getApkHoudokuTestingPreset('test');
+    const launchModel = this.getApkHoudokuLaunchModelWithOverrides({
+      profile: 'test',
+      previousRuntimeStateVersion: quickStart.afterSummary.runtimeStateVersion,
+      overrides: testingPreset.overrides,
+    });
+
+    const readyForInteractiveTest = quickStart.ready && launchModel.canRunHoudokuTest;
+
+    return {
+      previousRuntimeStateVersion,
+      summary,
+      quickStart,
+      launchModel,
+      readyForInteractiveTest,
+      suggestedNextAction: readyForInteractiveTest
+        ? 'start-houdoku-test'
+        : quickStart.suggestedNextAction,
+      reason: readyForInteractiveTest
+        ? 'Functional testing run is ready for interactive Houdoku testing.'
+        : 'Functional testing run executed, but additional actions are still required.',
+    };
+  };
+
+  override getApkHoudokuTestingDispatchModel = (
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuTestingDispatchModel => {
+    const functionalRun = this.runApkHoudokuTestingFunctionalRun(previousRuntimeStateVersion);
+    const nextCommandResult = this.preflightApkHoudokuNextTestingCommandSuggestion(
+      functionalRun.quickStart.afterSummary.runtimeStateVersion
+    );
+    const nextCommand = nextCommandResult.command;
+    const dispatchMethod = nextCommand?.method;
+    const dispatchArgsJson = nextCommand?.argsJson;
+    const canDispatchCommand =
+      nextCommand !== undefined &&
+      nextCommandResult.preflight.allowlisted &&
+      nextCommandResult.preflight.parsedArgsValid;
+    const canStartInteractiveTest = functionalRun.readyForInteractiveTest;
+
+    let suggestedClientAction: ApkHoudokuTestingDispatchModel['suggestedClientAction'] = 'wait';
+    let reason = 'Await updated runtime state before executing the next client action.';
+
+    if (canStartInteractiveTest) {
+      suggestedClientAction = 'start-houdoku-test';
+      reason = 'Interactive testing can start now.';
+    } else if (canDispatchCommand) {
+      suggestedClientAction = 'dispatch-command';
+      reason = 'Dispatch-ready testing command is available for the next step.';
+    }
+
+    return {
+      previousRuntimeStateVersion,
+      functionalRun,
+      nextCommand,
+      dispatchMethod,
+      dispatchArgsJson,
+      canDispatchCommand,
+      canStartInteractiveTest,
+      suggestedClientAction,
+      reason,
+    };
+  };
+
+  private _executeAllowlistedHoudokuIntegrationCommand = (
+    method: string,
+    args: unknown[]
+  ): void => {
+    if (method === 'getApkHoudokuTestingModelWithOptions') {
+      this.getApkHoudokuTestingModelWithOptions(...(args as [ApkHoudokuTestingModelOptions?]));
+      return;
+    }
+
+    if (method === 'getApkHoudokuLaunchModel') {
+      this.getApkHoudokuLaunchModel(
+        ...(args as [ApkRuntimeStrictStartupProfile?, string?])
+      );
+      return;
+    }
+
+    if (method === 'runApkHoudokuTestReady') {
+      this.runApkHoudokuTestReady(...(args as [ApkHoudokuTestReadyOptions?]));
+      return;
+    }
+
+    if (method === 'getApkStartupExecutionSummary') {
+      this.getApkStartupExecutionSummary(...(args as [ApkRuntimeStrictStartupProfile?]));
+      return;
+    }
+
+    if (method === 'getApkStartupRemediationPlan') {
+      this.getApkStartupRemediationPlan(...(args as [ApkRuntimeStrictStartupProfile?]));
+      return;
+    }
+
+    throw new Error(`Method '${method}' is not allowlisted for integration command dispatch.`);
+  };
+
+  override runApkHoudokuIntegrationCommandSuggestion = (
+    command?: ApkHoudokuIntegrationCommandSuggestion,
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuIntegrationCommandExecutionResult => {
+    const fallbackStepExecution = this.runApkHoudokuIntegrationStep(
+      profile,
+      undefined,
+      previousRuntimeStateVersion
+    );
+    const preflight = this.preflightApkHoudokuIntegrationCommandSuggestion(
+      command,
+      profile,
+      previousRuntimeStateVersion
+    );
+
+    if (
+      !preflight.allowlisted ||
+      !preflight.parsedArgsValid ||
+      preflight.normalizedMethod === undefined ||
+      preflight.normalizedStepCode === undefined
+    ) {
+      return {
+        profile,
+        command,
+        allowlisted: preflight.allowlisted,
+        parsedArgsValid: preflight.parsedArgsValid,
+        executed: false,
+        error: preflight.error,
+        stepExecution: fallbackStepExecution,
+      };
+    }
+
+    try {
+      this._executeAllowlistedHoudokuIntegrationCommand(
+        preflight.normalizedMethod,
+        preflight.parsedArgs || []
+      );
+      const stepExecution = this.runApkHoudokuIntegrationStep(
+        profile,
+        preflight.normalizedStepCode,
+        previousRuntimeStateVersion
+      );
+      return {
+        profile,
+        command,
+        allowlisted: true,
+        parsedArgsValid: true,
+        executed: true,
+        error: undefined,
+        stepExecution,
+      };
+    } catch (error) {
+      return {
+        profile,
+        command,
+        allowlisted: true,
+        parsedArgsValid: true,
+        executed: false,
+        error: error instanceof Error ? error.message : 'Unknown command execution error.',
+        stepExecution: fallbackStepExecution,
+      };
+    }
+  };
+
+  override runApkHoudokuNextIntegrationCommandSuggestion = (
+    profile: ApkRuntimeStrictStartupProfile = 'test',
+    previousRuntimeStateVersion?: string
+  ): ApkHoudokuNextIntegrationCommandExecutionResult => {
+    const suggestions = this.getApkHoudokuIntegrationCommandSuggestions(
+      profile,
+      previousRuntimeStateVersion
+    );
+    const command = suggestions.suggestions.find((entry) => entry.isNextStep);
+    const execution = this.runApkHoudokuIntegrationCommandSuggestion(
+      command,
+      profile,
+      previousRuntimeStateVersion
+    );
+
+    return {
+      profile,
+      nextStep: suggestions.nextStep,
+      command,
+      execution,
     };
   };
 

@@ -37,9 +37,17 @@ pnpm run smoke:apk-runtime -- --apk-dir="D:/Path/To/Keiyoushi APK Extensions"
 
 ### Automation
 
-- GitHub Actions workflow: `.github/workflows/core-lint-build-publish.yml`
-- On `push`/`pull_request` to `main`: runs lint + build.
-- Manual publish (`workflow_dispatch`): requires inputs `version`, `tag` and secret `NPM_TOKEN`.
+- Lint workflow: `.github/workflows/lint.yml`
+	- On `push`/`pull_request` to `main`: runs `common:lint`, `core:lint`, and `core:build`.
+	- Runs on `ubuntu`, `windows`, and `macos` to continuously verify cross-platform compatibility.
+	- Manual run supports selecting a source `branch`.
+- Release workflow: `.github/workflows/release.yml`
+	- Manual only (`workflow_dispatch`) with `branch`, version `bump` (`patch`/`minor`/`major`), and npm dist-`tag` (`next`/`latest`).
+	- Calculates next version from the latest `V*`/`v*` git tag and publishes via:
+		`pnpm exec nx run core:publish --args="--ver=x.x.x --tag=<latest/next>"`.
+	- Publish target depends on `core:build`, so required build happens through Nx target dependencies.
+	- Creates and pushes a new `Vx.y.z` tag and creates a GitHub release.
+	- Requires repository secret `NPM_TOKEN`.
 
 This is an Nx monorepo. You can run build/test tasks using the CLI commands
 (such as the ones above), but I recommend using the VSCode extension:
