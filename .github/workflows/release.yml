@@ -3,11 +3,6 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: Branch to release from
-        required: true
-        default: main
-        type: string
       bump:
         description: Version bump type
         type: choice
@@ -30,7 +25,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ inputs.branch }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -42,7 +37,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -122,6 +116,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.git_tag }}
-          target_commitish: ${{ inputs.branch }}
+          target_commitish: ${{ github.ref_name }}
           name: Tiyo core ${{ steps.version.outputs.git_tag }}
           generate_release_notes: true
