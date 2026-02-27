@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump type
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: version
+        name: Calculate next version
+        shell: bash
+        run: |
+          git fetch --tags
+          latest=$(git tag -l 'V*' --sort=-v:refname | head -n 1)
+
+          if [ -z "$latest" ]; then
+            latest="V0.0.0"
+          fi
+
+          latest=${latest#V}
+          IFS='.' read -r major minor patch <<< "$latest"
+
+          case "${{ inputs.bump }}" in
+            major)
+              major=$((major+1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor+1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch+1))
+              ;;
+          esac
+
+          echo "version=V$major.$minor.$patch" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          git tag "${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Houdoku ${{ steps.version.outputs.version }}
+
+  build:
+    needs: tag
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.version }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # 🔧 FIX #3 — sync Electron app version to tag
+      - name: Sync app version to release tag
+        shell: bash
+        run: |
+          VERSION="${{ needs.tag.outputs.version }}"
+          VERSION="${VERSION#V}"
+          
+          # Update apps/desktop/package.json using Node.js directly
+          # This is more reliable in pnpm monorepos than using npm version
+          node -e "
+            const fs = require('fs');
+            const path = 'apps/desktop/package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf-8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+            console.log('Updated ' + path + ' version to ' + pkg.version);
+          "
+
+      - name: Build desktop app
+        run: pnpm --filter @houdoku/desktop build
+
+      - name: Package desktop app
+        shell: bash
+        run: |
+          cd apps/desktop
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            pnpm run dist:linux
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            pnpm run dist:win
+          else
+            pnpm run dist:mac
+          fi
+
+      # 🔧 FIX #2 — enforce tag-based release + proper title
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.tag.outputs.version }}
+          name: Houdoku ${{ needs.tag.outputs.version }}
+          overwrite_files: true
+          files: |
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.nsis
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.yml
+            apps/desktop/release/*.blockmap
