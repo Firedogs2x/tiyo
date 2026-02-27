@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to release from
+        required: true
+        default: main
+        type: string
+      bump:
+        description: Version bump type
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      tag:
+        description: npm dist-tag
+        type: choice
+        required: true
+        default: next
+        options:
+          - next
+          - latest
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.branch }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release core package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate npm token
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NPM_TOKEN repository secret is required for release publish."
+            exit 1
+          fi
+
+      - id: version
+        name: Calculate next version
+        shell: bash
+        run: |
+          git fetch --tags
+          latest=$(git tag -l '[Vv]*' --sort=-v:refname | head -n 1)
+
+          if [ -z "$latest" ]; then
+            latest="V0.0.0"
+          fi
+
+          latest=${latest#V}
+          latest=${latest#v}
+          IFS='.' read -r major minor patch <<< "$latest"
+
+          case "${{ inputs.bump }}" in
+            major)
+              major=$((major+1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor+1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch+1))
+              ;;
+          esac
+
+          version="$major.$minor.$patch"
+          git_tag="V$version"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "git_tag=$git_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Publish core package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm exec nx run core:publish --args="--ver=${{ steps.version.outputs.version }} --tag=${{ inputs.tag }}"
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version.outputs.git_tag }}"
+          git push origin "${{ steps.version.outputs.git_tag }}"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.git_tag }}
+          target_commitish: ${{ inputs.branch }}
+          name: Tiyo core ${{ steps.version.outputs.git_tag }}
+          generate_release_notes: true

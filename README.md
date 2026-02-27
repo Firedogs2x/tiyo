@@ -19,12 +19,35 @@ Prerequisites:
 # Install package dependencies
 pnpm install
 
+# Lint @tiyo/common and @tiyo/core
+pnpm run lint
+
 # Build @tiyo/core, which will also build @tiyo/common
 pnpm exec nx run core:build
 
 # Publish package
 pnpm exec nx run core:publish --args="--ver=x.x.x --tag=<latest/next>"
+
+# Run APK runtime smoke test (fixture APKs)
+pnpm run smoke:apk-runtime
+
+# Run APK runtime smoke test against a real folder
+pnpm run smoke:apk-runtime -- --apk-dir="D:/Path/To/Keiyoushi APK Extensions"
 ```
+
+### Automation
+
+- Lint workflow: `.github/workflows/lint.yml`
+	- On `push`/`pull_request` to `main`: runs `common:lint`, `core:lint`, and `core:build`.
+	- Runs on `ubuntu`, `windows`, and `macos` to continuously verify cross-platform compatibility.
+	- Manual run supports selecting a source `branch`.
+- Release workflow: `.github/workflows/release.yml`
+	- Manual only (`workflow_dispatch`) with `branch`, version `bump` (`patch`/`minor`/`major`), and npm dist-`tag` (`next`/`latest`).
+	- Calculates next version from the latest `V*`/`v*` git tag and publishes via:
+		`pnpm exec nx run core:publish --args="--ver=x.x.x --tag=<latest/next>"`.
+	- Publish target depends on `core:build`, so required build happens through Nx target dependencies.
+	- Creates and pushes a new `Vx.y.z` tag and creates a GitHub release.
+	- Requires repository secret `NPM_TOKEN`.
 
 This is an Nx monorepo. You can run build/test tasks using the CLI commands
 (such as the ones above), but I recommend using the VSCode extension:

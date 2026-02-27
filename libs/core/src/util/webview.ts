@@ -1,7 +1,6 @@
 import { BrowserWindow } from 'electron';
 import { WebviewResponse } from '@tiyo/common';
 
-// eslint-disable-next-line import/prefer-default-export
 export const loadInWebView = async (
   spoofWindow: BrowserWindow | null,
   url: string,
@@ -24,7 +23,6 @@ export const loadInWebView = async (
       }
 
       spoofWindow?.webContents.executeJavaScript('document.body.innerHTML').then((value) => {
-        // eslint-disable-next-line promise/always-return
         if (value) {
           const pageUrl = spoofWindow.webContents.getURL();
           const pageTitle = spoofWindow.webContents.getTitle();

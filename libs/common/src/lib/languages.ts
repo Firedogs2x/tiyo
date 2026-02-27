@@ -1,7 +1,6 @@
 import { LanguageKey } from "./enums";
 import { Language } from "./types";
 
-// eslint-disable-next-line import/prefer-default-export
 export const Languages: { [key: string]: Language } = {
   [LanguageKey.MULTI]: {
     key: LanguageKey.MULTI,

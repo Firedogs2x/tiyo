@@ -40,5 +40,7 @@ testem.log
 Thumbs.db
 
 .nx/cache
+.nx/workspace-data
+.specstory/
 
 .vscode/tasks.json
