@@ -12,6 +12,12 @@ Run `nx build core` to build the library.
 
 ### Minimal Houdoku method flow
 
+### Main program design (recommended)
+
+- Use `runApkHoudokuMainProgramMethod(options?)` as the primary backend API.
+- For embedded integration, use `createHoudokuMainProgramRunner(options?)` and call `run()` each cycle.
+- This keeps orchestration minimal while preserving method-based setup, source verification, and polling updates.
+
 - `runApkHoudokuApkMethodSetup(targetDirectory?)`
   - One-call runtime setup for Houdoku APK mode.
   - Sets/normalizes APK directory, enables APK-only mode, and returns readiness checks.
@@ -34,10 +40,12 @@ Run `nx build core` to build the library.
 
 - For local verification against the Houdoku folder and MangaDex replacement, run:
   - `pnpm smoke:apk-runtime` (default installed method: `runApkHoudokuInstalledApkMethodSetup()`)
-  - `pnpm smoke:houdoku` (single-source MangaDex path)
-  - `pnpm smoke:houdoku:all` (explicit all-sources path)
+  - `pnpm smoke:tiyo` (single-source MangaDex path)
+  - `pnpm smoke:tiyo:all` (explicit all-sources path)
   - `pnpm houdoku:update` (one-shot JSON payload; validates a good source APK, default `mangadex`)
   - `pnpm houdoku:ready` (same check, fails with non-zero exit if APK data is not usable by Houdoku)
+  - `pnpm houdoku:cleanup:unsupported` (unsupported-only cleanup dry-run + good-source recheck)
+    - Add `-- --apply` to actually remove unsupported APKs.
   - `pnpm poll:houdoku` (method-based filesystem polling every 5 minutes with source verification)
   - Optional args for both scripts: `--source-key=<source>`, `--package-name=<package>`, `--apk-dir=<path>`
 
@@ -174,6 +182,16 @@ Run `nx build core` to build the library.
 - `runApkHoudokuApkSourceMethodSetup(sourceKey, targetDirectory?, requestedPackageName?)`
   - Method-first source setup for Houdoku testing (for example, `mangadex`).
   - Returns source-level selection/readiness plus final active package verification.
+
+- `runApkHoudokuGoodSourceMethodSetup(sourceKey, targetDirectory?, requestedPackageName?)`
+  - Method-first strict gate that confirms one source APK is truly usable by Houdoku.
+  - Verifies source setup success, selected/active package match, and extension visibility.
+  - Returns `{ sourceSetup, usableByHoudoku, reasons }`.
+
+- `runApkHoudokuMainProgramMethod(options?)`
+  - Main program method for Houdoku integration with minimal orchestration.
+  - Combines strict good-source setup and polling update payload in one call.
+  - Returns `{ goodSourceSetup, pollingUpdate, success, reasons }`.
 
 - `getApkHoudokuReadyStatus()`
   - Returns a compact startup-readiness status for Houdoku UI badges/checks.

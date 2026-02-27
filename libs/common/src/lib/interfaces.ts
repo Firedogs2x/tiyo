@@ -21,8 +21,11 @@ import {
   ApkRuntimeStartupPreparationResult,
   ApkRuntimeFilesystemSyncResult,
   ApkHoudokuPollingUpdateResult,
+  ApkHoudokuMainProgramMethodOptions,
+  ApkHoudokuMainProgramMethodResult,
   ApkHoudokuApkMethodSetupResult,
   ApkHoudokuApkSourceMethodSetupResult,
+  ApkHoudokuGoodSourceMethodSetupResult,
   ApkHoudokuApkBulkSourceMethodSetupResult,
   ApkRuntimeMaintenanceCycleOptions,
   ApkRuntimeMaintenanceCycleResult,
@@ -427,6 +430,9 @@ export interface TiyoClientInterface {
     previousRuntimeStateVersion?: string,
     profile?: ApkRuntimeStrictStartupProfile
   ) => ApkHoudokuPollingUpdateResult;
+  runApkHoudokuMainProgramMethod?: (
+    options?: ApkHoudokuMainProgramMethodOptions
+  ) => ApkHoudokuMainProgramMethodResult;
   stabilizeApkRuntimeState?: (maxSteps?: number) => ApkRuntimeStabilizeResult;
   prepareApkRuntimeForHoudokuStartup?: () => ApkRuntimeStartupPreparationResult;
   runApkHoudokuApkMethodSetup?: (targetDirectory?: string) => ApkHoudokuApkMethodSetupResult;
@@ -435,6 +441,11 @@ export interface TiyoClientInterface {
     targetDirectory?: string,
     requestedPackageName?: string
   ) => ApkHoudokuApkSourceMethodSetupResult;
+  runApkHoudokuGoodSourceMethodSetup?: (
+    sourceKey: string,
+    targetDirectory?: string,
+    requestedPackageName?: string
+  ) => ApkHoudokuGoodSourceMethodSetupResult;
   runApkHoudokuApkBulkSourceMethodSetup?: (
     targetDirectory?: string
   ) => ApkHoudokuApkBulkSourceMethodSetupResult;
@@ -730,6 +741,9 @@ export abstract class TiyoClientAbstract implements TiyoClientInterface {
     previousRuntimeStateVersion?: string,
     profile?: ApkRuntimeStrictStartupProfile
   ) => ApkHoudokuPollingUpdateResult;
+  runApkHoudokuMainProgramMethod?: (
+    options?: ApkHoudokuMainProgramMethodOptions
+  ) => ApkHoudokuMainProgramMethodResult;
   stabilizeApkRuntimeState?: (maxSteps?: number) => ApkRuntimeStabilizeResult;
   prepareApkRuntimeForHoudokuStartup?: () => ApkRuntimeStartupPreparationResult;
   runApkHoudokuApkMethodSetup?: (targetDirectory?: string) => ApkHoudokuApkMethodSetupResult;
@@ -738,6 +752,11 @@ export abstract class TiyoClientAbstract implements TiyoClientInterface {
     targetDirectory?: string,
     requestedPackageName?: string
   ) => ApkHoudokuApkSourceMethodSetupResult;
+  runApkHoudokuGoodSourceMethodSetup?: (
+    sourceKey: string,
+    targetDirectory?: string,
+    requestedPackageName?: string
+  ) => ApkHoudokuGoodSourceMethodSetupResult;
   runApkHoudokuApkBulkSourceMethodSetup?: (
     targetDirectory?: string
   ) => ApkHoudokuApkBulkSourceMethodSetupResult;

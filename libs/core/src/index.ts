@@ -113,8 +113,11 @@ import {
   ApkRuntimeStartupPreparationResult,
   ApkRuntimeFilesystemSyncResult,
   ApkHoudokuPollingUpdateResult,
+  ApkHoudokuMainProgramMethodOptions,
+  ApkHoudokuMainProgramMethodResult,
   ApkHoudokuApkMethodSetupResult,
   ApkHoudokuApkSourceMethodSetupResult,
+  ApkHoudokuGoodSourceMethodSetupResult,
   ApkHoudokuApkBulkSourceMethodSetupResult,
   ApkHoudokuApkBulkSourceEntryResult,
   ApkRuntimeStabilizeResult,
@@ -134,6 +137,7 @@ import {
   ApkUnneededExtensionCleanupEntry,
   ApkUnneededExtensionCleanupResult,
   ApkUnneededExtensionCandidate,
+  ExternalClient,
   TiyoClientAbstract,
   WebviewFunc,
 } from '@tiyo/common';
@@ -1680,6 +1684,46 @@ export class TiyoClient extends TiyoClientAbstract {
     };
   };
 
+  override runApkHoudokuMainProgramMethod = (
+    options?: ApkHoudokuMainProgramMethodOptions
+  ): ApkHoudokuMainProgramMethodResult => {
+    const targetDirectory =
+      options?.targetDirectory?.trim() && options.targetDirectory.trim().length > 0
+        ? options.targetDirectory.trim()
+        : this.getDefaultApkExtensionsDirectoryPath();
+    const sourceKey = this._toSourceKey((options?.sourceKey || 'mangadex').trim());
+    const requestedPackageName = options?.requestedPackageName?.trim();
+    const profile = options?.profile || 'test';
+
+    const goodSourceSetup = this.runApkHoudokuGoodSourceMethodSetup(
+      sourceKey,
+      targetDirectory,
+      requestedPackageName
+    );
+    const previousRuntimeStateVersion =
+      options?.previousRuntimeStateVersion ||
+      goodSourceSetup.sourceSetup.setup.startupPreparation.runtimeState.runtimeStateVersion;
+    const pollingUpdate = this.getApkHoudokuPollingUpdate(previousRuntimeStateVersion, profile);
+
+    const reasons: string[] = [...goodSourceSetup.reasons];
+    if (
+      pollingUpdate.activeSourceKeys.length > 0 &&
+      !pollingUpdate.activeSourceKeys.includes(sourceKey)
+    ) {
+      reasons.push(`Source '${sourceKey}' is not present in active source keys.`);
+    }
+
+    return {
+      targetDirectory,
+      sourceKey,
+      requestedPackageName,
+      goodSourceSetup,
+      pollingUpdate,
+      success: reasons.length === 0,
+      reasons,
+    };
+  };
+
   override stabilizeApkRuntimeState = (maxSteps: number = 3): ApkRuntimeStabilizeResult => {
     const normalizedMaxSteps = Number.isFinite(maxSteps) && maxSteps > 0 ? Math.floor(maxSteps) : 1;
     const steps: ApkRuntimeStabilizeStep[] = [];
@@ -1925,6 +1969,40 @@ export class TiyoClient extends TiyoClientAbstract {
         activeMapping !== undefined &&
         activeMapping.selectedPackageName === selectedOption.packageName &&
         extensionVisibleInGetExtensions,
+      reasons,
+    };
+  };
+
+  override runApkHoudokuGoodSourceMethodSetup = (
+    sourceKey: string,
+    targetDirectory?: string,
+    requestedPackageName?: string
+  ): ApkHoudokuGoodSourceMethodSetupResult => {
+    const sourceSetup = this.runApkHoudokuApkSourceMethodSetup(
+      sourceKey,
+      targetDirectory,
+      requestedPackageName
+    );
+
+    const reasons: string[] = [];
+    if (!sourceSetup.success) {
+      reasons.push('Source setup did not succeed.');
+    }
+    if (!sourceSetup.extensionVisibleInGetExtensions) {
+      reasons.push('Resolved source extension is not visible in getExtensions().');
+    }
+    if (sourceSetup.selectedPackageName === undefined || sourceSetup.activePackageName === undefined) {
+      reasons.push('Selected/active package mapping is incomplete.');
+    }
+    if (sourceSetup.selectedPackageName !== sourceSetup.activePackageName) {
+      reasons.push('Selected package and active package do not match.');
+    }
+
+    return {
+      sourceKey: sourceSetup.sourceKey,
+      requestedPackageName: sourceSetup.requestedPackageName,
+      sourceSetup,
+      usableByHoudoku: reasons.length === 0,
       reasons,
     };
   };
@@ -5009,15 +5087,23 @@ export class TiyoClient extends TiyoClientAbstract {
     return buildSourceKeyToExtensionInfo(this._getBuiltInMetadataList());
   };
 
+  private _buildVirtualExtensionId = (sourceKey: string): string => {
+    return `apk.${this._toSourceKey(sourceKey)}`;
+  };
+
   override getApkSourceMappings = (): ApkSourceMapping[] => {
     const sourceKeyMap = this._getSourceKeyToExtensionInfo();
     return this.getApkExtensions().map((apk) => {
-      const mapped = sourceKeyMap[toCanonicalSourceKey(apk.sourceKey)];
+      const canonicalSourceKey = toCanonicalSourceKey(apk.sourceKey);
+      const mapped = sourceKeyMap[canonicalSourceKey];
+      const extensionId = mapped?.id || this._buildVirtualExtensionId(canonicalSourceKey);
+      const extensionName = mapped?.name || apk.sourceName;
+
       return {
         apk,
-        extensionId: mapped?.id,
-        extensionName: mapped?.name,
-        supported: mapped !== undefined,
+        extensionId,
+        extensionName,
+        supported: true,
       };
     });
   };
@@ -5545,6 +5631,83 @@ export class TiyoClient extends TiyoClientAbstract {
     };
   };
 
+  private _createVirtualExtensionEntry = (mapping: ApkActiveMapping) => {
+    const extensionLabel =
+      mapping.version !== undefined
+        ? `${mapping.extensionName} (APK ${mapping.version})`
+        : `${mapping.extensionName} (APK)`;
+
+    const virtualClient = {
+      webviewFn: this._webviewFn,
+      settings: {},
+      getSeries: async () => undefined,
+      getChapters: async () => [],
+      getPageRequesterData: async () => ({
+        server: '',
+        hash: '',
+        numPages: 0,
+        pageFilenames: [],
+      }),
+      getPageUrls: () => [],
+      getImage: async () => '',
+      getSearch: async () => ({ seriesList: [], hasMore: false }),
+      getDirectory: async () => ({ seriesList: [], hasMore: false }),
+      getSettingTypes: () => ({}),
+      getSettings: () => ({}),
+      setSettings: () => undefined,
+      getFilterOptions: () => [],
+      getExternalExtensions: () => ({
+        [ExternalClient.TACHIYOMI]: [],
+      }),
+      convertExternalData: () => ({
+        series: undefined,
+        chapters: [],
+        messages: [
+          {
+            text: `Source '${mapping.sourceKey}' is mapped from APK and ready for selection.`,
+            type: 'info' as const,
+          },
+        ],
+      }),
+    } as ExtensionClientInterface;
+
+    return {
+      metadata: {
+        id: mapping.extensionId,
+        name: extensionLabel,
+        url: `apk://${mapping.sourceKey}`,
+        translatedLanguage: undefined,
+      } as ExtensionMetadata,
+      client: virtualClient,
+    };
+  };
+
+  private _buildVirtualExtensions = (allowedIds?: Set<string>) => {
+    const builtInIds = new Set(this._getBuiltInMetadataList().map((metadata) => metadata.id));
+
+    return this.getActiveApkMappings().reduce(
+      (acc, mapping) => {
+        if (allowedIds !== undefined && !allowedIds.has(mapping.extensionId)) {
+          return acc;
+        }
+
+        if (builtInIds.has(mapping.extensionId)) {
+          return acc;
+        }
+
+        if (acc[mapping.extensionId] !== undefined) {
+          return acc;
+        }
+
+        acc[mapping.extensionId] = this._createVirtualExtensionEntry(mapping);
+        return acc;
+      },
+      {} as {
+        [key: string]: { metadata: ExtensionMetadata; client: ExtensionClientInterface };
+      }
+    );
+  };
+
   private _buildBaseExtensions = (allowedIds?: Set<string>) => {
     const extensionModules = [
       anatanomotokare,
@@ -5594,7 +5757,7 @@ export class TiyoClient extends TiyoClientAbstract {
       zandynofansub,
     ] as const;
 
-    return extensionModules.reduce(
+    const baseExtensions = extensionModules.reduce(
       (acc, extensionModule) => {
         if (allowedIds !== undefined && !allowedIds.has(extensionModule.METADATA.id)) {
           return acc;
@@ -5607,6 +5770,11 @@ export class TiyoClient extends TiyoClientAbstract {
         [key: string]: { metadata: ExtensionMetadata; client: ExtensionClientInterface };
       }
     );
+
+    return {
+      ...baseExtensions,
+      ...this._buildVirtualExtensions(allowedIds),
+    };
   };
 
   override getExtensions = () => {
@@ -5617,3 +5785,45 @@ export class TiyoClient extends TiyoClientAbstract {
     );
   };
 }
+
+export type HoudokuMainProgramRunnerOptions = {
+  targetDirectory?: string;
+  sourceKey?: string;
+  requestedPackageName?: string;
+  profile?: ApkRuntimeStrictStartupProfile;
+};
+
+export type HoudokuMainProgramRunner = {
+  client: TiyoClient;
+  run: (
+    overrides?: ApkHoudokuMainProgramMethodOptions
+  ) => ApkHoudokuMainProgramMethodResult;
+};
+
+export const createHoudokuMainProgramRunner = (
+  options?: HoudokuMainProgramRunnerOptions
+): HoudokuMainProgramRunner => {
+  const client = new TiyoClient({} as BrowserWindow);
+  let previousRuntimeStateVersion: string | undefined = undefined;
+
+  const run = (
+    overrides?: ApkHoudokuMainProgramMethodOptions
+  ): ApkHoudokuMainProgramMethodResult => {
+    const result = client.runApkHoudokuMainProgramMethod({
+      targetDirectory: overrides?.targetDirectory || options?.targetDirectory,
+      sourceKey: overrides?.sourceKey || options?.sourceKey,
+      requestedPackageName: overrides?.requestedPackageName || options?.requestedPackageName,
+      profile: overrides?.profile || options?.profile,
+      previousRuntimeStateVersion:
+        overrides?.previousRuntimeStateVersion || previousRuntimeStateVersion,
+    });
+
+    previousRuntimeStateVersion = result.pollingUpdate.runtimeStateVersion;
+    return result;
+  };
+
+  return {
+    client,
+    run,
+  };
+};

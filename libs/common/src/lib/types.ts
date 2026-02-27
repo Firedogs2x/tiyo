@@ -457,6 +457,14 @@ export type ApkHoudokuPollingUpdateResult = {
   launchModel: ApkHoudokuLaunchModel;
 };
 
+export type ApkHoudokuMainProgramMethodOptions = {
+  targetDirectory?: string;
+  sourceKey?: string;
+  requestedPackageName?: string;
+  previousRuntimeStateVersion?: string;
+  profile?: ApkRuntimeStrictStartupProfile;
+};
+
 export type ApkHoudokuApkMethodSetupResult = {
   targetDirectory: string;
   startupPreparation: ApkRuntimeStartupPreparationResult;
@@ -476,6 +484,24 @@ export type ApkHoudokuApkSourceMethodSetupResult = {
   activePackageName: string | undefined;
   extensionId: string | undefined;
   extensionVisibleInGetExtensions: boolean;
+  success: boolean;
+  reasons: string[];
+};
+
+export type ApkHoudokuGoodSourceMethodSetupResult = {
+  sourceKey: string;
+  requestedPackageName: string | undefined;
+  sourceSetup: ApkHoudokuApkSourceMethodSetupResult;
+  usableByHoudoku: boolean;
+  reasons: string[];
+};
+
+export type ApkHoudokuMainProgramMethodResult = {
+  targetDirectory: string;
+  sourceKey: string;
+  requestedPackageName: string | undefined;
+  goodSourceSetup: ApkHoudokuGoodSourceMethodSetupResult;
+  pollingUpdate: ApkHoudokuPollingUpdateResult;
   success: boolean;
   reasons: string[];
 };

@@ -27,48 +27,45 @@ const getCliArgValue = (argName) => {
   return entry.slice(prefix.length).trim();
 };
 
+const hasCliFlag = (flagName) => {
+  return process.argv.includes(flagName);
+};
+
 const run = () => {
   const apkDir = path.resolve(getCliArgValue('--apk-dir') || process.env.TIYO_SMOKE_APK_DIR || DEFAULT_APK_DIR);
   const sourceKey = (getCliArgValue('--source-key') || DEFAULT_SOURCE_KEY).trim().toLowerCase();
-  const requestedPackageName = getCliArgValue('--package-name');
+  const apply = hasCliFlag('--apply');
 
   process.env.TIYO_APK_EXTENSIONS_DIR = apkDir;
 
   const client = new TiyoClient({});
-  const main = client.runApkHoudokuMainProgramMethod({
-    targetDirectory: apkDir,
-    sourceKey,
-    requestedPackageName,
-    profile: 'test',
+  const setup = client.runApkHoudokuInstalledApkMethodSetup();
+  const cleanup = client.cleanupUnneededApkExtensions({
+    apply,
+    policy: 'unsupported-only',
   });
+  const source = client.runApkHoudokuGoodSourceMethodSetup(sourceKey, apkDir);
 
   const payload = {
     apkDirectory: apkDir,
-    sourceKey,
-    requestedPackageName: requestedPackageName || 'auto',
-    sourceSetupSuccess: main.goodSourceSetup.sourceSetup.success,
-    sourceSetupReasons: main.goodSourceSetup.sourceSetup.reasons,
-    selectedPackageName: main.goodSourceSetup.sourceSetup.selectedPackageName,
-    activePackageName: main.goodSourceSetup.sourceSetup.activePackageName,
-    extensionId: main.goodSourceSetup.sourceSetup.extensionId,
-    extensionVisibleInGetExtensions: main.goodSourceSetup.sourceSetup.extensionVisibleInGetExtensions,
-    usableByHoudoku: main.goodSourceSetup.usableByHoudoku,
-    usabilityReasons: main.goodSourceSetup.reasons,
-    mainSuccess: main.success,
-    mainReasons: main.reasons,
-    update: {
-      changed: main.pollingUpdate.changed,
-      runtimeStateVersion: main.pollingUpdate.runtimeStateVersion,
-      activeSourceKeys: main.pollingUpdate.activeSourceKeys,
-      canRunHoudokuTest: main.pollingUpdate.launchModel.canRunHoudokuTest,
-      blockerReasons: main.pollingUpdate.launchModel.blockerReasons,
-      activeMappings: main.pollingUpdate.sync.runtimeState.activeMappings,
+    apply,
+    setupSuccess: setup.success,
+    cleanupSummary: {
+      totalCandidates: cleanup.totalCandidates,
+      removedCount: cleanup.removedCount,
+      skippedCount: cleanup.skippedCount,
+      failedCount: cleanup.failedCount,
+      policy: cleanup.policy,
     },
+    sourceKey,
+    usableByHoudoku: source.usableByHoudoku,
+    reasons: source.reasons,
+    activePackageName: source.sourceSetup.activePackageName,
   };
 
   process.stdout.write(`${JSON.stringify(payload, undefined, 2)}\n`);
 
-  if (!main.success) {
+  if (!source.usableByHoudoku) {
     process.exit(2);
   }
 };

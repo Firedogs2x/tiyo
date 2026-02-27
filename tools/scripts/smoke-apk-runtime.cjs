@@ -50,62 +50,91 @@ const run = () => {
   process.env.TIYO_APK_EXTENSIONS_DIR = apkDir;
 
   const client = new TiyoClient({});
-  const sourceSetupResult =
-    mode === 'single-source'
-      ? client.runApkHoudokuApkSourceMethodSetup(sourceKey, apkDir, requestedPackageName)
-      : undefined;
+  const mainResult =
+    mode === 'all-sources'
+      ? undefined
+      : client.runApkHoudokuMainProgramMethod({
+          targetDirectory: apkDir,
+          sourceKey,
+          requestedPackageName,
+          profile: 'test',
+        });
   const bulkSetupResult =
     mode === 'all-sources'
       ? client.runApkHoudokuApkBulkSourceMethodSetup(apkDir)
-      : mode === 'installed'
-      ? client.runApkHoudokuInstalledApkMethodSetup()
       : undefined;
   const runtimeState =
-    mode === 'single-source'
-      ? sourceSetupResult.setup.startupPreparation.runtimeState
-      : bulkSetupResult.setup.startupPreparation.runtimeState;
+    mode === 'all-sources'
+      ? bulkSetupResult.setup.startupPreparation.runtimeState
+      : mainResult.pollingUpdate.sync.runtimeState;
 
   const pass =
     fs.existsSync(apkDir) &&
     runtimeState.runtimeConfig.apkOnlyMode === true &&
-    (mode === 'single-source' ? sourceSetupResult.success : bulkSetupResult.success);
+    (mode === 'all-sources' ? bulkSetupResult.success : mainResult.success);
 
-  console.log('--- Houdoku APK Override Smoke ---');
+  console.log('--- Tiyo APK Runtime Smoke ---');
   console.log('APK directory:', apkDir);
   console.log('APK directory exists:', fs.existsSync(apkDir));
   console.log('Mode:', mode);
-  console.log('Setup success:', mode === 'single-source' ? sourceSetupResult.setup.success : bulkSetupResult.setup.success);
+  console.log(
+    'Setup success:',
+    mode === 'all-sources'
+      ? bulkSetupResult.setup.success
+      : mainResult.goodSourceSetup.sourceSetup.setup.success
+  );
   console.log(
     'Setup active source count:',
-    mode === 'single-source'
-      ? sourceSetupResult.setup.activeSourceKeys.length
-      : bulkSetupResult.setup.activeSourceKeys.length
+    mode === 'all-sources'
+      ? bulkSetupResult.setup.activeSourceKeys.length
+      : mainResult.goodSourceSetup.sourceSetup.setup.activeSourceKeys.length
   );
-  console.log('Source key:', mode === 'single-source' ? sourceKey : 'all');
-  console.log('Requested package:', mode === 'single-source' ? sourceSetupResult.requestedPackageName || 'auto' : 'auto-all');
-  console.log('Selected package:', mode === 'single-source' ? sourceSetupResult.selectedPackageName || 'none' : 'multiple');
-  console.log('Active package:', mode === 'single-source' ? sourceSetupResult.activePackageName || 'none' : 'multiple');
+  console.log('Source key:', mode === 'all-sources' ? 'all' : mainResult.sourceKey);
+  console.log(
+    'Requested package:',
+    mode === 'all-sources' ? 'auto-all' : mainResult.requestedPackageName || 'auto'
+  );
+  console.log(
+    'Selected package:',
+    mode === 'all-sources'
+      ? 'multiple'
+      : mainResult.goodSourceSetup.sourceSetup.selectedPackageName || 'none'
+  );
+  console.log(
+    'Active package:',
+    mode === 'all-sources'
+      ? 'multiple'
+      : mainResult.goodSourceSetup.sourceSetup.activePackageName || 'none'
+  );
   console.log('APK-only mode:', runtimeState.runtimeConfig.apkOnlyMode === true);
-  console.log('Mapped extension id:', mode === 'single-source' ? sourceSetupResult.extensionId || 'none' : 'multiple');
+  console.log(
+    'Mapped extension id:',
+    mode === 'all-sources'
+      ? 'multiple'
+      : mainResult.goodSourceSetup.sourceSetup.extensionId || 'none'
+  );
   console.log(
     'Visible in getExtensions:',
-    mode === 'single-source'
-      ? sourceSetupResult.extensionVisibleInGetExtensions
-      : `${bulkSetupResult.successfulSourceKeys.length}/${bulkSetupResult.sourceResults.length}`
+    mode === 'all-sources'
+      ? `${bulkSetupResult.successfulSourceKeys.length}/${bulkSetupResult.sourceResults.length}`
+      : mainResult.goodSourceSetup.sourceSetup.extensionVisibleInGetExtensions
   );
-  console.log('Source setup success:', mode === 'single-source' ? sourceSetupResult.success : bulkSetupResult.success);
-  if (mode !== 'single-source') {
+  console.log(
+    'Source setup success:',
+    mode === 'all-sources' ? bulkSetupResult.success : mainResult.goodSourceSetup.usableByHoudoku
+  );
+  if (mode === 'all-sources') {
     console.log('Successful source keys:', bulkSetupResult.successfulSourceKeys.join(', ') || 'none');
     if (bulkSetupResult.failedSourceKeys.length > 0) {
       console.log('Failed source keys:', bulkSetupResult.failedSourceKeys.join(', '));
       console.log('Source setup reasons:', bulkSetupResult.reasons.join(' | '));
     }
-  } else if (!sourceSetupResult.success && sourceSetupResult.reasons.length > 0) {
-    console.log('Source setup reasons:', sourceSetupResult.reasons.join(' | '));
+  } else if (!mainResult.success && mainResult.reasons.length > 0) {
+    console.log('Source setup reasons:', mainResult.reasons.join(' | '));
   }
 
   if (mode === 'installed') {
-    console.log('Installed method directory:', runtimeState.apkExtensionsDirectory);
+    console.log('Installed method directory:', mainResult.targetDirectory);
   }
 
   if (pass) {

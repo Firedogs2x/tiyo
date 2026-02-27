@@ -38,47 +38,48 @@ const run = () => {
   process.env.TIYO_APK_EXTENSIONS_DIR = apkDir;
 
   const client = new TiyoClient({});
-  const setup = client.runApkHoudokuInstalledApkMethodSetup();
-  const sourceSetup = client.runApkHoudokuApkSourceMethodSetup(
+  const main = client.runApkHoudokuMainProgramMethod({
+    targetDirectory: apkDir,
     sourceKey,
-    apkDir,
-    requestedPackageName
-  );
+    requestedPackageName,
+    profile: 'test',
+  });
 
   console.log('--- Houdoku APK Runtime Polling ---');
   console.log('APK directory:', apkDir);
   console.log('Source key:', sourceKey);
   console.log('Interval (ms):', intervalMs);
-  console.log('Initial setup success:', setup.success);
-  if (!setup.success && setup.reasons.length > 0) {
-    console.log('Initial setup reasons:', setup.reasons.join(' | '));
+  console.log('Initial setup success:', main.goodSourceSetup.sourceSetup.setup.success);
+  if (!main.goodSourceSetup.sourceSetup.setup.success && main.goodSourceSetup.sourceSetup.setup.reasons.length > 0) {
+    console.log('Initial setup reasons:', main.goodSourceSetup.sourceSetup.setup.reasons.join(' | '));
   }
-  console.log('Initial source setup success:', sourceSetup.success);
-  if (!sourceSetup.success && sourceSetup.reasons.length > 0) {
-    console.log('Initial source setup reasons:', sourceSetup.reasons.join(' | '));
+  console.log('Initial source setup success:', main.goodSourceSetup.usableByHoudoku);
+  if (!main.goodSourceSetup.usableByHoudoku && main.goodSourceSetup.reasons.length > 0) {
+    console.log('Initial source setup reasons:', main.goodSourceSetup.reasons.join(' | '));
   }
 
-  let previousRuntimeStateVersion = setup.setup.startupPreparation.runtimeState.runtimeStateVersion;
+  let previousRuntimeStateVersion = main.pollingUpdate.runtimeStateVersion;
 
   const poll = () => {
     const stamp = new Date().toISOString();
     try {
-      const result = client.getApkHoudokuPollingUpdate(previousRuntimeStateVersion, 'test');
-      previousRuntimeStateVersion = result.runtimeStateVersion;
+      const cycle = client.runApkHoudokuMainProgramMethod({
+        targetDirectory: apkDir,
+        sourceKey,
+        requestedPackageName,
+        previousRuntimeStateVersion,
+        profile: 'test',
+      });
+      previousRuntimeStateVersion = cycle.pollingUpdate.runtimeStateVersion;
 
-      console.log(`[${stamp}] changed=${result.changed} active=${result.activeSourceKeys.length}`);
-      if (result.changed) {
-        const refreshedSourceSetup = client.runApkHoudokuApkSourceMethodSetup(
-          sourceKey,
-          apkDir,
-          requestedPackageName
-        );
-        console.log(`[${stamp}] activeSourceKeys=${result.activeSourceKeys.join(', ') || 'none'}`);
+      console.log(`[${stamp}] changed=${cycle.pollingUpdate.changed} active=${cycle.pollingUpdate.activeSourceKeys.length}`);
+      if (cycle.pollingUpdate.changed) {
+        console.log(`[${stamp}] activeSourceKeys=${cycle.pollingUpdate.activeSourceKeys.join(', ') || 'none'}`);
         console.log(
-          `[${stamp}] canRunHoudokuTest=${result.launchModel.canRunHoudokuTest} blockers=${result.launchModel.blockerReasons.length}`
+          `[${stamp}] canRunHoudokuTest=${cycle.pollingUpdate.launchModel.canRunHoudokuTest} blockers=${cycle.pollingUpdate.launchModel.blockerReasons.length}`
         );
         console.log(
-          `[${stamp}] sourceSetupSuccess=${refreshedSourceSetup.success} activePackage=${refreshedSourceSetup.activePackageName || 'none'}`
+          `[${stamp}] sourceSetupSuccess=${cycle.goodSourceSetup.usableByHoudoku} activePackage=${cycle.goodSourceSetup.sourceSetup.activePackageName || 'none'}`
         );
       }
     } catch (error) {
