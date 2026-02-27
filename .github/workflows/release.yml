@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -91,6 +92,8 @@ jobs:
           echo "git_tag=$git_tag" >> "$GITHUB_OUTPUT"
 
       - name: Publish core package
+        env:
+          NODE_AUTH_TOKEN: ''
         run: pnpm exec nx run core:publish --args="--ver=${{ steps.version.outputs.version }} --tag=${{ inputs.tag }}"
 
       - name: Create and push tag
