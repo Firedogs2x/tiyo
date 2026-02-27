@@ -1,10 +1,8 @@
 /**
- * This is a minimal script to publish your package to "npm".
- * This is meant to be used as-is or customize as you see fit.
+ * Build a release tarball for a workspace package.
  *
- * This script is executed on "dist/path/to/library" as "cwd" by default.
- *
- * You might need to authenticate with NPM before running this script.
+ * This script runs inside "dist/path/to/library" and creates a .tgz
+ * package artifact with npm pack.
  */
 
 import { execSync } from 'child_process';
@@ -20,9 +18,8 @@ function invariant(condition, message) {
   }
 }
 
-// Executing publish script: node path/to/publish.mjs {name} --version {version} --tag {tag}
-// Default "tag" to "next" so we won't publish the "latest" tag by accident.
-const [, , name, version, tag = 'next'] = process.argv;
+// Executing release-pack script: node path/to/publish.mjs {name} --version {version}
+const [, , name, version] = process.argv;
 
 // A simple SemVer validation to validate the version
 const validVersion = /^\d+\.\d+\.\d+(-\w+\.\d+)?/;
@@ -56,5 +53,14 @@ try {
   console.error(`Error reading package.json file from library build output.`);
 }
 
-// Execute "npm publish" to publish
-execSync(`npm publish --provenance --access public --tag ${tag}`, { stdio: 'inherit' });
+// Execute "npm pack" to create release tarball artifact
+try {
+  execSync(`npm pack`, { stdio: 'inherit' });
+} catch (error) {
+  const packageName = JSON.parse(readFileSync(`package.json`, 'utf8')).name;
+  console.error('\nPackage tarball creation failed.');
+  console.error(`- Verify package metadata for ${packageName}.`);
+  console.error('- Verify build output exists and package.json is valid.');
+  console.error('- Then rerun the Release workflow.');
+  process.exit(error?.status || 1);
+}

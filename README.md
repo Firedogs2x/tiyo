@@ -25,8 +25,8 @@ pnpm run lint
 # Build @tiyo/core, which will also build @tiyo/common
 pnpm exec nx run core:build
 
-# Publish package
-pnpm exec nx run core:publish --args="--ver=x.x.x --tag=<latest/next>"
+# Build release tarball (.tgz)
+pnpm exec nx run core:publish --args="--ver=x.x.x"
 
 # Run APK runtime smoke test (fixture APKs)
 pnpm run smoke:apk-runtime
@@ -35,6 +35,20 @@ pnpm run smoke:apk-runtime
 pnpm run smoke:apk-runtime -- --apk-dir="D:/Path/To/Keiyoushi APK Extensions"
 ```
 
+## Install from GitHub Release
+
+Tiyo release artifacts are published as `.tgz` files on each GitHub release.
+
+```bash
+# Install @tiyo/common from a release asset
+npm i https://github.com/Firedogs2x/tiyo/releases/download/Vx.y.z/tiyo-common-x.y.z.tgz
+
+# Install @tiyo/core from a release asset
+npm i https://github.com/Firedogs2x/tiyo/releases/download/Vx.y.z/tiyo-core-x.y.z.tgz
+```
+
+Replace `x.y.z` with the version in the release tag (for example `V0.0.1` -> `0.0.1`).
+
 ### Automation
 
 - Lint workflow: `.github/workflows/lint.yml`
@@ -42,12 +56,12 @@ pnpm run smoke:apk-runtime -- --apk-dir="D:/Path/To/Keiyoushi APK Extensions"
 	- Runs on `ubuntu`, `windows`, and `macos` to continuously verify cross-platform compatibility.
 	- Manual run supports selecting a source `branch`.
 - Release workflow: `.github/workflows/release.yml`
-	- Manual only (`workflow_dispatch`) with `branch`, version `bump` (`patch`/`minor`/`major`), and npm dist-`tag` (`next`/`latest`).
-	- Calculates next version from the latest `V*`/`v*` git tag and publishes via:
-		`pnpm exec nx run core:publish --args="--ver=x.x.x --tag=<latest/next>"`.
+	- Manual only (`workflow_dispatch`) with version `bump` (`patch`/`minor`/`major`).
+	- Calculates next version from the latest `V*`/`v*` git tag and builds a release tarball via:
+		`pnpm exec nx run core:publish --args="--ver=x.x.x"`.
 	- Publish target depends on `core:build`, so required build happens through Nx target dependencies.
-	- Creates and pushes a new `Vx.y.z` tag and creates a GitHub release.
-	- Requires repository secret `NPM_TOKEN`.
+	- Creates and pushes a new `Vx.y.z` tag and creates a GitHub release with `dist/libs/core/*.tgz` attached.
+	- Does not require npm publishing credentials.
 
 This is an Nx monorepo. You can run build/test tasks using the CLI commands
 (such as the ones above), but I recommend using the VSCode extension:
