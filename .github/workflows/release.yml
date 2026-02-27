@@ -54,16 +54,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate npm token
-        shell: bash
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN repository secret is required for release publish."
-            exit 1
-          fi
-
       - id: version
         name: Calculate next version
         shell: bash
@@ -101,8 +91,6 @@ jobs:
           echo "git_tag=$git_tag" >> "$GITHUB_OUTPUT"
 
       - name: Publish core package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm exec nx run core:publish --args="--ver=${{ steps.version.outputs.version }} --tag=${{ inputs.tag }}"
 
       - name: Create and push tag
